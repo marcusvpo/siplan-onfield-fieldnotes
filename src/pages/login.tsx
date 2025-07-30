@@ -86,7 +86,7 @@ export const Login = () => {
     resetForm();
   };
 
-  // Initialize admin on first load (development only)
+  // Função manual para inicializar o admin (use só para seed, não é chamada automaticamente)
   const handleInitAdmin = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('create-admin');
@@ -97,14 +97,19 @@ export const Login = () => {
         description: "Usuário admin criado com sucesso"
       });
     } catch (error: any) {
+      toast({
+        title: "Erro ao criar admin",
+        description: error.message || "Erro inesperado",
+        variant: "destructive"
+      });
       console.log("Admin já existe ou erro:", error);
     }
   };
 
-  // Auto-initialize admin on component mount (dev only)
-  useEffect(() => {
-    handleInitAdmin();
-  }, []);
+  // Não chame mais handleInitAdmin() automaticamente!
+  // Para dev, se quiser, adicione um botão visível só em ambiente de desenvolvimento:
+  // <Button onClick={handleInitAdmin} variant="outline">Seed Admin</Button>
+  // (Remova esse botão em produção)
 
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4 animate-fade-in-up">
@@ -236,6 +241,13 @@ export const Login = () => {
               </Button>
             )}
           </div>
+
+          {/* BOTÃO DE SEED ADMIN (apague em produção, deixe só para DEV) */}
+          {/* <div className="pt-4">
+            <Button variant="outline" onClick={handleInitAdmin}>
+              Seed Admin
+            </Button>
+          </div> */}
         </CardContent>
       </Card>
     </div>
