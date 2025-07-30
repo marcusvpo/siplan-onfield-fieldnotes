@@ -57,54 +57,111 @@ export const useAuth = () => {
   }, []);
 
   const signInAdmin = async (email: string, password: string) => {
+    console.log("[AUTH] Tentativa de login do admin:", { email });
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.log("[AUTH] Erro de autenticação do admin:", error);
+        throw error;
+      }
+
+      console.log("[AUTH] Dados do usuário autenticado:", { 
+        userId: data.user?.id,
+        email: data.user?.email,
+        metadata: data.user?.user_metadata 
+      });
 
       // Verify if user is admin
       if (data.user?.user_metadata?.tipo !== "admin") {
+        console.log("[AUTH] Usuário não é admin:", { tipo: data.user?.user_metadata?.tipo });
         await supabase.auth.signOut();
         throw new Error("Acesso negado. Credenciais de administrador necessárias.");
       }
 
+      console.log("[AUTH] Login de admin bem-sucedido");
       return { data, error: null };
     } catch (error: any) {
+      console.error("[AUTH] Erro no login do admin:", error);
       return { data: null, error };
     }
   };
 
   const signInUser = async (username: string, password: string) => {
+    console.log("[AUTH] Tentativa de login do usuário:", { username });
+    
     try {
-      // For now, we'll simulate user login by using email format
-      // In production, this would query the users table by username
-      const email = `${username}@user.siplan.local`;
-      
+      // First find the user by username in our database
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select(`
+          auth_id,
+          email,
+          nome,
+          tipo,
+          username,
+          ativo
+        `)
+        .eq('username', username)
+        .eq('tipo', 'implantador')
+        .eq('ativo', true)
+        .single();
+
+      if (userError || !userData) {
+        console.log("[AUTH] Usuário não encontrado:", { username, error: userError });
+        throw new Error("Usuário não encontrado ou inativo.");
+      }
+
+      console.log("[AUTH] Usuário encontrado:", { userData });
+
+      // Now try to authenticate with the email from our database
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: userData.email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.log("[AUTH] Erro de autenticação:", error);
+        throw error;
+      }
 
       // Verify if user is implantador
       if (data.user?.user_metadata?.tipo === "admin") {
+        console.log("[AUTH] Tentativa de admin via login de usuário");
         await supabase.auth.signOut();
         throw new Error("Use o acesso administrativo para esta conta.");
       }
 
+      console.log("[AUTH] Login de usuário bem-sucedido:", { 
+        userId: data.user?.id, 
+        userType: data.user?.user_metadata?.tipo 
+      });
+
       return { data, error: null };
     } catch (error: any) {
+      console.error("[AUTH] Erro no login do usuário:", error);
       return { data: null, error };
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    console.log("[AUTH] Realizando logout");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("[AUTH] Erro no logout:", error);
+      } else {
+        console.log("[AUTH] Logout realizado com sucesso");
+      }
+      return { error };
+    } catch (error: any) {
+      console.error("[AUTH] Erro inesperado no logout:", error);
+      return { error };
+    }
   };
 
   return {

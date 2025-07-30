@@ -293,6 +293,7 @@ export type Database = {
           nome: string
           tipo: Database["public"]["Enums"]["user_type"]
           updated_at: string
+          username: string | null
         }
         Insert: {
           ativo?: boolean
@@ -303,6 +304,7 @@ export type Database = {
           nome: string
           tipo?: Database["public"]["Enums"]["user_type"]
           updated_at?: string
+          username?: string | null
         }
         Update: {
           ativo?: boolean
@@ -313,6 +315,7 @@ export type Database = {
           nome?: string
           tipo?: Database["public"]["Enums"]["user_type"]
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -321,6 +324,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_implantador: {
+        Args: { p_username: string; p_password: string }
+        Returns: {
+          id: string
+          email: string
+          user_metadata: Json
+        }[]
+      }
       get_current_user_type: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_type"]

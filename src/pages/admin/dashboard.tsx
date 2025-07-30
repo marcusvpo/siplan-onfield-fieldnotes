@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Users, 
   FolderOpen, 
@@ -53,6 +56,38 @@ const mockProjects = [
 
 export const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  console.log("[ADMIN DASHBOARD] Usuário logado:", user);
+
+  const handleLogout = async () => {
+    console.log("[ADMIN DASHBOARD] Iniciando logout");
+    const { error } = await signOut();
+    if (error) {
+      console.error("[ADMIN DASHBOARD] Erro no logout:", error);
+      toast({
+        title: "Erro no logout",
+        description: error.message || "Erro inesperado",
+        variant: "destructive"
+      });
+    } else {
+      console.log("[ADMIN DASHBOARD] Logout realizado, redirecionando");
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso"
+      });
+      navigate("/");
+    }
+  };
+
+  // Redirect if not admin
+  if (user && user.tipo !== "admin") {
+    console.log("[ADMIN DASHBOARD] Usuário não é admin, redirecionando");
+    navigate("/mobile");
+    return null;
+  }
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -73,8 +108,8 @@ export const AdminDashboard = () => {
     <div className="min-h-screen bg-light-gray">
       <Header 
         userType="admin" 
-        userName="Admin Sistema"
-        onLogout={() => console.log("Logout")}
+        userName={user?.nome || "Administrador"}
+        onLogout={handleLogout}
       />
       
       <main className="max-w-7xl mx-auto p-6 space-y-6">
@@ -135,10 +170,20 @@ export const AdminDashboard = () => {
                   Gerencie todos os projetos e acompanhe o progresso em tempo real
                 </CardDescription>
               </div>
-              <Button className="bg-wine-red hover:bg-wine-red-hover gap-2">
-                <Plus className="h-4 w-4" />
-                Novo Projeto
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/admin/users")}
+                  className="gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  Gerenciar Usuários
+                </Button>
+                <Button variant="wine" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Novo Projeto
+                </Button>
+              </div>
             </div>
           </CardHeader>
           

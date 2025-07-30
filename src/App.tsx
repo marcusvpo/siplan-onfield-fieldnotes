@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Login } from "./pages/login";
 import { AdminDashboard } from "./pages/admin/dashboard";
+import { UsersManagement } from "./pages/admin/users";
 import { MobileHome } from "./pages/mobile/home";
 import { MobileProjectDetail } from "./pages/mobile/project-detail";
 import NotFound from "./pages/NotFound";
@@ -20,6 +21,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<UsersManagement />} />
           <Route path="/mobile" element={<MobileHome />} />
           <Route path="/mobile/project/:id" element={<MobileProjectDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

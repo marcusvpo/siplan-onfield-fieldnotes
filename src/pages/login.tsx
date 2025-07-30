@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Logo } from "@/components/ui/logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Crown, User, ArrowLeft, Shield } from "lucide-react";
 
 type LoginMode = "user" | "admin";
@@ -68,14 +69,39 @@ export const Login = () => {
 
   const resetForm = () => {
     setUsername("");
-    setEmail("");
-    setPassword("");
+    if (mode === "admin") {
+      setEmail("admin@siplan.com.br");
+      setPassword("siplan123");
+    } else {
+      setEmail("");
+      setPassword("");
+    }
   };
 
   const switchMode = (newMode: LoginMode) => {
     setMode(newMode);
     resetForm();
   };
+
+  // Initialize admin on first load (development only)
+  const handleInitAdmin = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-admin');
+      if (error) throw error;
+      
+      toast({
+        title: "Admin inicializado",
+        description: "Usuário admin criado com sucesso"
+      });
+    } catch (error: any) {
+      console.log("Admin já existe ou erro:", error);
+    }
+  };
+
+  // Auto-initialize admin on component mount (dev only)
+  useEffect(() => {
+    handleInitAdmin();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4 animate-fade-in-up">
@@ -168,7 +194,8 @@ export const Login = () => {
             
             <Button 
               type="submit" 
-              className="w-full h-12 rounded-xl bg-gradient-primary text-white font-semibold shadow-elegant hover:shadow-glow transition-smooth disabled:opacity-50"
+              variant="wine"
+              className="w-full h-12 rounded-xl font-semibold disabled:opacity-50"
               disabled={loading}
             >
               {loading ? (
