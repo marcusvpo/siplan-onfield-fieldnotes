@@ -197,6 +197,13 @@ export const useAuth = () => {
   const signOut = async () => {
     console.log("[AUTH] Realizando logout");
     try {
+      // Clear local state first
+      setUser(null);
+      setSession(null);
+      
+      // Clear any localStorage data
+      localStorage.clear();
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("[AUTH] Erro no logout:", error);

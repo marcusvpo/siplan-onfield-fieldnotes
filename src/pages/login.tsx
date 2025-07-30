@@ -24,10 +24,13 @@ export const Login = () => {
 
   useEffect(() => {
     if (user) {
+      console.log("[LOGIN] Usuário detectado, redirecionando:", { tipo: user.tipo, nome: user.nome });
       if (user.tipo === "admin") {
-        navigate("/admin");
+        console.log("[LOGIN] Redirecionando admin para /admin");
+        navigate("/admin", { replace: true });
       } else {
-        navigate("/mobile");
+        console.log("[LOGIN] Redirecionando implantador para /mobile");
+        navigate("/mobile", { replace: true });
       }
     }
   }, [user, navigate]);
