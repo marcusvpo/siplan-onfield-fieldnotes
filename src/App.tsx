@@ -87,6 +87,11 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      {/* 
+        ⚠️ NÃO faça nenhuma chamada automática para funções de inicialização aqui!
+        Se tiver algum useEffect ou função create-admin, remova desse arquivo e de qualquer arquivo de alto nível que roda sempre.
+        A função create-admin só deve ser chamada manualmente (console) em ambiente de DEV.
+      */}
     </TooltipProvider>
   </QueryClientProvider>
 );
