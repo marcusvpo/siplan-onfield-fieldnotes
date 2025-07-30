@@ -39,9 +39,43 @@ serve(async (req) => {
 
     if (authError) {
       console.error('[CREATE ADMIN] Error creating auth user:', authError)
-      // If user already exists, try to get it
-      const { data: existingUser } = await supabase.auth.admin.getUserById(authError.message.includes('already') ? '' : '')
-      if (!existingUser) {
+      
+      // If user already exists, get existing user by email
+      if (authError.message.includes('already')) {
+        console.log('[CREATE ADMIN] User already exists, fetching existing user...')
+        const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers()
+        
+        if (listError) {
+          console.error('[CREATE ADMIN] Error listing users:', listError)
+          throw listError
+        }
+        
+        const existingUser = existingUsers.users.find(u => u.email === 'admin@siplan.com.br')
+        if (existingUser) {
+          console.log('[CREATE ADMIN] Found existing user, updating metadata...')
+          
+          // Update user metadata to ensure admin type
+          const { data: updatedUser, error: updateError } = await supabase.auth.admin.updateUserById(
+            existingUser.id,
+            {
+              user_metadata: {
+                tipo: 'admin',
+                nome: 'Administrador do Sistema'
+              }
+            }
+          )
+          
+          if (updateError) {
+            console.error('[CREATE ADMIN] Error updating user metadata:', updateError)
+            throw updateError
+          }
+          
+          console.log('[CREATE ADMIN] User metadata updated successfully')
+          authData = { user: updatedUser.user }
+        } else {
+          throw new Error('Admin user not found')
+        }
+      } else {
         throw authError
       }
     }

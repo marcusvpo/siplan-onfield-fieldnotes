@@ -18,18 +18,12 @@ export const useAuth = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('[AUTH] Auth state change:', { event, session: session?.user?.email });
         setSession(session);
+        
         if (session?.user) {
-          // Transform Supabase user to our AuthUser format
-          const authUser: AuthUser = {
-            id: session.user.id,
-            email: session.user.email,
-            username: session.user.user_metadata?.username,
-            tipo: session.user.user_metadata?.tipo || "implantador",
-            nome: session.user.user_metadata?.nome
-          };
-          setUser(authUser);
+          await loadUserData(session.user);
         } else {
           setUser(null);
         }
@@ -38,23 +32,63 @@ export const useAuth = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[AUTH] Getting existing session:', { session: session?.user?.email });
       setSession(session);
+      
       if (session?.user) {
-        const authUser: AuthUser = {
-          id: session.user.id,
-          email: session.user.email,
-          username: session.user.user_metadata?.username,
-          tipo: session.user.user_metadata?.tipo || "implantador",
-          nome: session.user.user_metadata?.nome
-        };
-        setUser(authUser);
+        await loadUserData(session.user);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const loadUserData = async (authUser: any) => {
+    try {
+      console.log('[AUTH] Loading user data for:', authUser.email);
+      console.log('[AUTH] User metadata from auth:', authUser.user_metadata);
+      
+      // Try to get user data from our users table
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', authUser.id)
+        .single();
+
+      if (error) {
+        console.error('[AUTH] Error fetching user data:', error);
+        // Fallback to auth metadata if database query fails
+        const user: AuthUser = {
+          id: authUser.id,
+          email: authUser.email,
+          username: authUser.user_metadata?.username,
+          tipo: authUser.user_metadata?.tipo || "implantador",
+          nome: authUser.user_metadata?.nome || authUser.email
+        };
+        setUser(user);
+        return;
+      }
+
+      console.log('[AUTH] User data from database:', userData);
+      
+      // Use database data as source of truth
+      const user: AuthUser = {
+        id: authUser.id,
+        email: authUser.email,
+        username: userData.username,
+        tipo: userData.tipo,
+        nome: userData.nome
+      };
+      
+      console.log('[AUTH] Final user data:', user);
+      setUser(user);
+    } catch (error) {
+      console.error('[AUTH] Error in loadUserData:', error);
+      setUser(null);
+    }
+  };
 
   const signInAdmin = async (email: string, password: string) => {
     console.log("[AUTH] Tentativa de login do admin:", { email });
@@ -76,9 +110,21 @@ export const useAuth = () => {
         metadata: data.user?.user_metadata 
       });
 
-      // Verify if user is admin
-      if (data.user?.user_metadata?.tipo !== "admin") {
-        console.log("[AUTH] Usuário não é admin:", { tipo: data.user?.user_metadata?.tipo });
+      // Verify if user is admin by checking our users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('tipo, ativo')
+        .eq('auth_id', data.user?.id)
+        .single();
+
+      if (userError || !userData) {
+        console.log("[AUTH] Usuário não encontrado na tabela users:", userError);
+        await supabase.auth.signOut();
+        throw new Error("Acesso negado. Credenciais de administrador necessárias.");
+      }
+
+      if (userData.tipo !== "admin" || !userData.ativo) {
+        console.log("[AUTH] Usuário não é admin ou está inativo:", { tipo: userData.tipo, ativo: userData.ativo });
         await supabase.auth.signOut();
         throw new Error("Acesso negado. Credenciais de administrador necessárias.");
       }
