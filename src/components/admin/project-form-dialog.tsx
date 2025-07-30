@@ -223,14 +223,14 @@ export const ProjectFormDialog = ({
             <div className="space-y-2">
               <Label htmlFor="usuario_id">Implantador</Label>
               <Select 
-                value={watch("usuario_id") || ""} 
-                onValueChange={(value) => setValue("usuario_id", value || undefined)}
+                value={watch("usuario_id") || "none"} 
+                onValueChange={(value) => setValue("usuario_id", value === "none" ? undefined : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um implantador" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum implantador</SelectItem>
+                  <SelectItem value="none">Nenhum implantador</SelectItem>
                   {implantadores.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.nome} ({user.username})

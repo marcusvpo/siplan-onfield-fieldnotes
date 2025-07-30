@@ -157,14 +157,14 @@ export const ProjectFiltersSheet = ({ filters, onFiltersChange }: ProjectFilters
           <div className="space-y-2">
             <Label>Status</Label>
             <Select 
-              value={filters.status || ""} 
-              onValueChange={(value) => updateFilter('status', value)}
+              value={filters.status || "all"} 
+              onValueChange={(value) => updateFilter('status', value === "all" ? "" : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
                 {statusOptions.map((status) => (
                   <SelectItem key={status.value} value={status.value}>
                     {status.label}
@@ -178,14 +178,14 @@ export const ProjectFiltersSheet = ({ filters, onFiltersChange }: ProjectFilters
           <div className="space-y-2">
             <Label>Sistema</Label>
             <Select 
-              value={filters.sistema || ""} 
-              onValueChange={(value) => updateFilter('sistema', value)}
+              value={filters.sistema || "all"} 
+              onValueChange={(value) => updateFilter('sistema', value === "all" ? "" : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os sistemas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os sistemas</SelectItem>
+                <SelectItem value="all">Todos os sistemas</SelectItem>
                 {sistemasOptions.map((sistema) => (
                   <SelectItem key={sistema} value={sistema}>
                     {sistema}
@@ -199,14 +199,14 @@ export const ProjectFiltersSheet = ({ filters, onFiltersChange }: ProjectFilters
           <div className="space-y-2">
             <Label>Estado</Label>
             <Select 
-              value={filters.estado || ""} 
-              onValueChange={(value) => updateFilter('estado', value)}
+              value={filters.estado || "all"} 
+              onValueChange={(value) => updateFilter('estado', value === "all" ? "" : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os estados" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os estados</SelectItem>
+                <SelectItem value="all">Todos os estados</SelectItem>
                 {estadosOptions.map((estado) => (
                   <SelectItem key={estado} value={estado}>
                     {estado}
@@ -220,14 +220,14 @@ export const ProjectFiltersSheet = ({ filters, onFiltersChange }: ProjectFilters
           <div className="space-y-2">
             <Label>Implantador</Label>
             <Select 
-              value={filters.usuario_id || ""} 
-              onValueChange={(value) => updateFilter('usuario_id', value)}
+              value={filters.usuario_id || "all"} 
+              onValueChange={(value) => updateFilter('usuario_id', value === "all" ? "" : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os implantadores" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os implantadores</SelectItem>
+                <SelectItem value="all">Todos os implantadores</SelectItem>
                 {implantadores.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.nome} ({user.username})
