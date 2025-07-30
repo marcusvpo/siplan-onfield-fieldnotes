@@ -8,27 +8,29 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Siplan On-Field Design System */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 20%;
+    /* Siplan On-Field Design System - Modernizado */
+    --background: 218 12% 97%;
+    --foreground: 215 20% 15%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 20%;
+    --popover-foreground: 215 20% 15%;
 
     /* Primary: Vermelho Vinho */
     --primary: 0 60% 35%;
     --primary-foreground: 0 0% 98%;
     --primary-hover: 0 65% 30%;
+    --primary-glow: 0 60% 85%;
 
-    /* Secondary: Cinza Escuro */
-    --secondary: 0 0% 25%;
+    /* Secondary: Azul Suave */
+    --secondary: 210 30% 25%;
     --secondary-foreground: 0 0% 98%;
+    --secondary-light: 210 30% 95%;
 
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 218 12% 94%;
+    --muted-foreground: 215 20% 45%;
 
     --accent: 0 60% 35%;
     --accent-foreground: 0 0% 98%;
@@ -36,8 +38,8 @@ All colors MUST be HSL.
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 96%;
+    --border: 218 12% 88%;
+    --input: 0 0% 100%;
     --ring: 0 60% 35%;
 
     /* Siplan Custom Tokens */
@@ -45,25 +47,39 @@ All colors MUST be HSL.
     --wine-red-hover: 0 65% 30%;
     --wine-red-light: 0 60% 95%;
     
-    --dark-gray: 0 0% 25%;
-    --medium-gray: 0 0% 45%;
-    --light-gray: 0 0% 95%;
+    --dark-gray: 215 20% 20%;
+    --medium-gray: 215 15% 50%;
+    --light-gray: 218 12% 96%;
     
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
     --info: 217 91% 60%;
 
-    /* Gradients */
+    /* Gradientes Modernos */
     --gradient-primary: linear-gradient(135deg, hsl(var(--wine-red)), hsl(var(--wine-red-hover)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-subtle: linear-gradient(135deg, hsl(218 15% 99%), hsl(218 12% 96%));
+    --gradient-secondary: linear-gradient(135deg, hsl(210 30% 98%), hsl(210 20% 94%));
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.8), hsl(0 0% 100% / 0.4));
 
-    /* Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(var(--wine-red) / 0.1);
-    --shadow-card: 0 4px 12px -2px hsl(0 0% 0% / 0.1);
+    /* Sombras Suaves */
+    --shadow-elegant: 0 20px 40px -12px hsl(var(--wine-red) / 0.15);
+    --shadow-soft: 0 4px 20px -4px hsl(215 20% 15% / 0.08);
+    --shadow-card: 0 8px 30px -8px hsl(215 20% 15% / 0.12);
+    --shadow-floating: 0 12px 40px -8px hsl(215 20% 15% / 0.15);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
 
-    /* Animations */
+    /* Animações e Transições */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: all 0.15s ease-out;
+    --transition-bounce: all 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Bordas Arredondadas */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
   }
 
   .dark {
@@ -139,6 +155,104 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+  }
+}
+
+@layer utilities {
+  /* Sombras modernas */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  
+  .shadow-floating {
+    box-shadow: var(--shadow-floating);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Gradientes */
+  .bg-gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+  
+  .bg-gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+  
+  .bg-gradient-glass {
+    background: var(--gradient-glass);
+    backdrop-filter: blur(10px);
+  }
+
+  /* Transições */
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+
+  /* Efeitos hover elegantes */
+  .hover-lift {
+    @apply transition-smooth;
+  }
+  
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-floating;
+  }
+
+  /* Botão de gravação pulsante */
+  .pulse-record {
+    animation: pulse-record 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-record {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  /* Efeitos de entrada suaves */
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }

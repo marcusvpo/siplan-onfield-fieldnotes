@@ -16,7 +16,7 @@ export const Logo = ({ className, variant = "full", size = "md" }: LogoProps) =>
   if (variant === "icon") {
     return (
       <div className={cn(
-        "bg-gradient-to-br from-wine-red to-wine-red-hover rounded-lg flex items-center justify-center text-white font-bold",
+        "bg-gradient-primary rounded-xl flex items-center justify-center text-white font-bold shadow-soft",
         sizeClasses[size],
         className
       )}>
@@ -26,16 +26,16 @@ export const Logo = ({ className, variant = "full", size = "md" }: LogoProps) =>
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-3", className)}>
       <div className={cn(
-        "bg-gradient-to-br from-wine-red to-wine-red-hover rounded-lg flex items-center justify-center text-white font-bold",
+        "bg-gradient-primary rounded-xl flex items-center justify-center text-white font-bold shadow-soft",
         sizeClasses[size]
       )}>
         <span className="text-sm">S</span>
       </div>
       <div className="flex flex-col">
-        <span className="font-bold text-dark-gray text-sm leading-none">Siplan</span>
-        <span className="text-xs text-medium-gray leading-none">On-Field</span>
+        <span className="font-bold text-dark-gray text-lg leading-none">Siplan</span>
+        <span className="text-sm text-medium-gray leading-none">On-Field</span>
       </div>
     </div>
   );
