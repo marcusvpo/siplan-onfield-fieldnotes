@@ -1,7 +1,11 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { useProjects } from "@/hooks/use-projects";
 import { 
   Calendar, 
   MapPin, 
@@ -9,59 +13,68 @@ import {
   ChevronRight
 } from "lucide-react";
 
-const mockUserProjects = [
-  {
-    id: 1,
-    chamado: "CH-2025-001",
-    cartorio: "1º Cartório de Notas",
-    cidade: "São Paulo - SP",
-    sistema: "Orion PRO",
-    dataAgendada: "2025-01-15",
-    status: "Em Andamento",
-    hasNewActivity: false
-  },
-  {
-    id: 2,
-    chamado: "CH-2025-004",
-    cartorio: "Cartório de Registro de Imóveis",
-    cidade: "Santos - SP",
-    sistema: "WebRI",
-    dataAgendada: "2025-01-22",
-    status: "Agendado",
-    hasNewActivity: true
-  }
-];
-
 export const MobileHome = () => {
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { projects, loading, getProjectsByUser } = useProjects();
+
+  const userProjects = user ? getProjectsByUser(user.id) : [];
+
   const getStatusColor = (status: string) => {
     const colors = {
-      "Em Andamento": "bg-info text-white",
-      "Agendado": "bg-warning text-white",
-      "Concluído": "bg-success text-white"
+      "em_andamento": "bg-info text-white",
+      "aguardando": "bg-warning text-white", 
+      "finalizado": "bg-success text-white",
+      "cancelado": "bg-destructive text-white"
     };
     return colors[status as keyof typeof colors] || "bg-medium-gray text-white";
   };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      "em_andamento": "Em Andamento",
+      "aguardando": "Agendado",
+      "finalizado": "Concluído", 
+      "cancelado": "Cancelado"
+    };
+    return labels[status as keyof typeof labels] || status;
+  };
+
+  const handleOpenProject = (projectId: string) => {
+    navigate(`/mobile/project/${projectId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-wine-red border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-medium-gray">Carregando projetos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header 
         userType="implantador" 
-        userName="João Silva"
-        onLogout={() => console.log("Logout")}
+        userName={user?.nome || "Implantador"}
+        onLogout={signOut}
       />
       
       <main className="p-4 space-y-4">
         <div className="text-center py-6">
           <h1 className="text-2xl font-bold text-dark-gray mb-2">
-            Bem-vindo, João!
+            Bem-vindo, {user?.nome?.split(' ')[0] || 'Implantador'}!
           </h1>
           <p className="text-medium-gray">
-            Você tem <span className="font-semibold text-wine-red">2 projetos</span> atribuídos
+            Você tem <span className="font-semibold text-wine-red">{userProjects.length} projetos</span> atribuídos
           </p>
         </div>
 
         <div className="space-y-4">
-          {mockUserProjects.map((project) => (
+          {userProjects.map((project) => (
             <Card key={project.id} className="shadow-card hover:shadow-lg transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
@@ -70,28 +83,25 @@ export const MobileHome = () => {
                       <span className="text-xs font-mono text-medium-gray">
                         {project.chamado}
                       </span>
-                      {project.hasNewActivity && (
-                        <div className="w-2 h-2 bg-wine-red rounded-full"></div>
-                      )}
                     </div>
                     <h3 className="font-semibold text-dark-gray text-lg">
-                      {project.cartorio}
+                      {project.nome_cartorio}
                     </h3>
                   </div>
                   <Badge className={getStatusColor(project.status)}>
-                    {project.status}
+                    {getStatusLabel(project.status)}
                   </Badge>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm text-medium-gray">
                     <MapPin className="h-4 w-4" />
-                    <span>{project.cidade}</span>
+                    <span>{project.estado}</span>
                   </div>
                   
                   <div className="flex items-center gap-2 text-sm text-medium-gray">
                     <Calendar className="h-4 w-4" />
-                    <span>Agendado para {new Date(project.dataAgendada).toLocaleDateString('pt-BR')}</span>
+                    <span>Agendado para {new Date(project.data_agendada).toLocaleDateString('pt-BR')}</span>
                   </div>
                   
                   <div className="flex items-center gap-2 text-sm">
@@ -103,6 +113,7 @@ export const MobileHome = () => {
                 <Button 
                   className="w-full bg-wine-red hover:bg-wine-red-hover gap-2"
                   size="lg"
+                  onClick={() => handleOpenProject(project.id)}
                 >
                   Abrir Projeto
                   <ChevronRight className="h-4 w-4" />
@@ -112,7 +123,7 @@ export const MobileHome = () => {
           ))}
         </div>
 
-        {mockUserProjects.length === 0 && (
+        {userProjects.length === 0 && (
           <div className="text-center py-12">
             <div className="bg-light-gray rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
               <Clock className="h-8 w-8 text-medium-gray" />

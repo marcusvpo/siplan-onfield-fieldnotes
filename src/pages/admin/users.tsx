@@ -1,146 +1,56 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useUsers } from "@/hooks/use-users";
+import { UserFormDialog } from "@/components/admin/user-form-dialog";
 import { 
   Users, 
   Plus,
   Search,
-  Edit,
-  Trash2,
   UserCheck,
-  UserX
+  UserX,
+  Trash2
 } from "lucide-react";
-
-interface User {
-  id: string;
-  nome: string;
-  email: string;
-  username?: string;
-  tipo: "admin" | "implantador";
-  ativo: boolean;
-  created_at: string;
-}
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const UsersManagement = () => {
-  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    nome: "",
-    email: "",
-    username: "",
-    password: ""
-  });
   
   const { user: currentUser, signOut } = useAuth();
-  const { toast } = useToast();
+  const { 
+    users, 
+    loading, 
+    createUser, 
+    toggleUserStatus, 
+    deleteUser 
+  } = useUsers();
 
-  const loadUsers = async () => {
-    try {
-      console.log("[USERS] Carregando usuários...");
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error("[USERS] Erro ao carregar usuários:", error);
-        throw error;
-      }
-
-      console.log("[USERS] Usuários carregados:", data);
-      setUsers(data || []);
-    } catch (error: any) {
-      console.error("[USERS] Erro:", error);
-      toast({
-        title: "Erro ao carregar usuários",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("[USERS] Criando usuário:", formData);
-    
-    try {
-      // Validate required fields
-      if (!formData.nome || !formData.email || !formData.username || !formData.password) {
-        throw new Error("Todos os campos são obrigatórios");
-      }
-
-      // Create auth user via edge function
-      const { data, error } = await supabase.functions.invoke('create-implantador', {
-        body: formData
-      });
-
-      if (error) {
-        throw new Error(data?.error || "Erro ao criar usuário");
-      }
-
-      toast({
-        title: "Usuário criado",
-        description: "Implantador criado com sucesso"
-      });
-
-      // Reset form and close dialog
-      setFormData({ nome: "", email: "", username: "", password: "" });
-      setDialogOpen(false);
-      
-      // Reload users list
-      loadUsers();
-      
-    } catch (error: any) {
-      console.error("[USERS] Erro ao criar usuário:", error);
-      toast({
-        title: "Erro ao criar usuário",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
+  const handleCreateUser = async (userData: any) => {
+    await createUser(userData);
+    setDialogOpen(false);
   };
 
   const handleToggleUser = async (userId: string, currentStatus: boolean) => {
-    try {
-      console.log("[USERS] Alterando status do usuário:", { userId, currentStatus });
-      
-      const { error } = await supabase
-        .from('users')
-        .update({ ativo: !currentStatus })
-        .eq('id', userId);
+    await toggleUserStatus(userId, currentStatus);
+  };
 
-      if (error) throw error;
-
-      toast({
-        title: "Status alterado",
-        description: `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso`
-      });
-
-      loadUsers();
-    } catch (error: any) {
-      console.error("[USERS] Erro ao alterar status:", error);
-      toast({
-        title: "Erro ao alterar status",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
+  const handleDeleteUser = async (userId: string) => {
+    await deleteUser(userId);
   };
 
   const filteredUsers = users.filter(user =>
@@ -182,84 +92,10 @@ export const UsersManagement = () => {
                 </CardDescription>
               </div>
               
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="wine" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Novo Implantador
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Criar Novo Implantador</DialogTitle>
-                    <DialogDescription>
-                      Preencha os dados do novo implantador. O username será usado para login.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <form onSubmit={handleCreateUser} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nome">Nome Completo</Label>
-                      <Input
-                        id="nome"
-                        value={formData.nome}
-                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                        placeholder="Nome completo do implantador"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="email@empresa.com"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Nome de Usuário</Label>
-                      <Input
-                        id="username"
-                        value={formData.username}
-                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        placeholder="usuario.login"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Senha</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        placeholder="Senha inicial"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => setDialogOpen(false)}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button type="submit" variant="wine" className="flex-1">
-                        Criar Usuário
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <Button variant="wine" className="gap-2" onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Novo Implantador
+              </Button>
             </div>
           </CardHeader>
           
@@ -319,24 +155,56 @@ export const UsersManagement = () => {
                         <td className="p-4">
                           <div className="flex gap-2">
                             {user.tipo !== "admin" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleToggleUser(user.id, user.ativo)}
-                                className="gap-1"
-                              >
-                                {user.ativo ? (
-                                  <>
-                                    <UserX className="h-3 w-3" />
-                                    Desativar
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheck className="h-3 w-3" />
-                                    Ativar
-                                  </>
-                                )}
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleToggleUser(user.id, user.ativo)}
+                                  className="gap-1"
+                                >
+                                  {user.ativo ? (
+                                    <>
+                                      <UserX className="h-3 w-3" />
+                                      Desativar
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserCheck className="h-3 w-3" />
+                                      Ativar
+                                    </>
+                                  )}
+                                </Button>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1 text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                      Excluir
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza que deseja excluir o usuário "{user.nome}"? Esta ação não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteUser(user.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Excluir
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
                             )}
                           </div>
                         </td>
@@ -356,6 +224,12 @@ export const UsersManagement = () => {
           </CardContent>
         </Card>
       </main>
+
+      <UserFormDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={handleCreateUser}
+      />
     </div>
   );
 };

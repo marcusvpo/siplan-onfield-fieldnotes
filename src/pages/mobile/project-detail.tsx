@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
+import { useProjects } from "@/hooks/use-projects";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Mic, 
   MicOff,
@@ -14,17 +19,9 @@ import {
   Calendar,
   MapPin,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ArrowLeft
 } from "lucide-react";
-
-const mockProject = {
-  chamado: "CH-2025-001",
-  cartorio: "1º Cartório de Notas - São Paulo",
-  sistema: "Orion PRO", 
-  dataAgendada: "2025-01-15",
-  email: "contato@cartorio1sp.com.br",
-  observacaoAdmin: "Cliente solicitou instalação prioritária do módulo de certidões"
-};
 
 const mockTimeline = [
   {
@@ -67,9 +64,29 @@ const mockTimeline = [
 ];
 
 export const MobileProjectDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { projects, loading, updateProject } = useProjects();
+  const { toast } = useToast();
+  
   const [isRecording, setIsRecording] = useState(false);
   const [newText, setNewText] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const project = projects.find(p => p.id === id);
+
+  useEffect(() => {
+    if (!loading && !project) {
+      toast({
+        title: "Projeto não encontrado",
+        description: "O projeto solicitado não foi encontrado.",
+        variant: "destructive"
+      });
+      navigate('/mobile');
+    }
+  }, [project, loading, navigate, toast]);
 
   const startRecording = () => {
     setIsRecording(true);
@@ -111,41 +128,140 @@ export const MobileProjectDetail = () => {
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (!project) return;
+    
+    setIsUpdatingStatus(true);
+    try {
+      await updateProject(project.id, { status: newStatus as any });
+      toast({
+        title: "Status atualizado",
+        description: `Status do projeto alterado para ${getStatusLabel(newStatus)}`
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar status",
+        description: "Não foi possível atualizar o status do projeto.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newText.trim() || !project) return;
+    
+    // TODO: Implementar adição de nota/comentário ao projeto
+    // Por enquanto, apenas limpa o campo
+    setNewText("");
+    toast({
+      title: "Nota adicionada",
+      description: "Sua observação foi registrada."
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      "em_andamento": "bg-info text-white",
+      "aguardando": "bg-warning text-white", 
+      "finalizado": "bg-success text-white",
+      "cancelado": "bg-destructive text-white"
+    };
+    return colors[status as keyof typeof colors] || "bg-medium-gray text-white";
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      "em_andamento": "Em Andamento",
+      "aguardando": "Agendado",
+      "finalizado": "Concluído", 
+      "cancelado": "Cancelado"
+    };
+    return labels[status as keyof typeof labels] || status;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-wine-red border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-medium-gray">Carregando projeto...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header 
         userType="implantador" 
-        userName="João Silva"
-        onLogout={() => console.log("Logout")}
+        userName={user?.nome || "Implantador"}
+        onLogout={signOut}
       />
       
       <main className="pb-24">
         {/* Project Info - Fixed Header */}
         <div className="bg-white border-b border-border p-4 sticky top-16 z-10">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-mono text-medium-gray">{mockProject.chamado}</span>
-            <Badge className="bg-info text-white">Em Andamento</Badge>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/mobile')}
+                className="p-1"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs font-mono text-medium-gray">{project.chamado}</span>
+            </div>
+            <Badge className={getStatusColor(project.status)}>
+              {getStatusLabel(project.status)}
+            </Badge>
           </div>
           <h1 className="text-lg font-bold text-dark-gray mb-1">
-            {mockProject.cartorio}
+            {project.nome_cartorio}
           </h1>
           <div className="flex flex-wrap gap-4 text-sm text-medium-gray">
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              <span>{new Date(mockProject.dataAgendada).toLocaleDateString('pt-BR')}</span>
+              <span>{new Date(project.data_agendada).toLocaleDateString('pt-BR')}</span>
             </div>
             <div className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              <span>{mockProject.sistema}</span>
+              <span>{project.sistema}</span>
             </div>
           </div>
           
-          {mockProject.observacaoAdmin && (
+          {project.observacao_admin && (
             <div className="mt-3 p-2 bg-wine-red-light rounded-lg">
               <p className="text-xs text-wine-red font-medium">Observação do Admin:</p>
-              <p className="text-sm text-dark-gray">{mockProject.observacaoAdmin}</p>
+              <p className="text-sm text-dark-gray">{project.observacao_admin}</p>
             </div>
           )}
+
+          {/* Status Update */}
+          <div className="mt-3">
+            <label className="text-xs text-medium-gray mb-1 block">Atualizar Status:</label>
+            <Select 
+              value={project.status} 
+              onValueChange={handleStatusChange}
+              disabled={isUpdatingStatus}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aguardando">Agendado</SelectItem>
+                <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                <SelectItem value="finalizado">Concluído</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Timeline */}
@@ -233,6 +349,7 @@ export const MobileProjectDetail = () => {
           <Button 
             className="bg-wine-red hover:bg-wine-red-hover"
             disabled={!newText.trim()}
+            onClick={handleAddNote}
           >
             <Send className="h-4 w-4" />
           </Button>
@@ -266,8 +383,10 @@ export const MobileProjectDetail = () => {
           <Button 
             variant="outline" 
             className="bg-success text-white hover:bg-success/90 border-success"
+            onClick={() => handleStatusChange('finalizado')}
+            disabled={isUpdatingStatus || project.status === 'finalizado'}
           >
-            Finalizar
+            {project.status === 'finalizado' ? 'Finalizado' : 'Finalizar'}
           </Button>
         </div>
         

@@ -1,0 +1,1 @@
+export { MobileHome as default } from "./home";
