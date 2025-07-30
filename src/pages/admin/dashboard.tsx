@@ -7,6 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useProjects } from "@/hooks/use-projects";
+import { useUsers } from "@/hooks/use-users";
+import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
+import { ProjectDetailsDialog } from "@/components/admin/project-details-dialog";
+import { ProjectFiltersSheet, ProjectFilters } from "@/components/admin/project-filters";
 import { 
   Users, 
   FolderOpen, 
@@ -15,50 +20,21 @@ import {
   AlertTriangle,
   Plus,
   Search,
-  Filter
+  Filter,
+  Eye
 } from "lucide-react";
-
-const mockProjects = [
-  {
-    id: 1,
-    chamado: "CH-2025-001",
-    cartorio: "1º Cartório de Notas - São Paulo",
-    estado: "SP",
-    sistema: "Orion PRO",
-    implantador: "João Silva",
-    dataAgendada: "2025-01-15",
-    status: "Em Andamento",
-    ultimaAtividade: "2 horas atrás"
-  },
-  {
-    id: 2,
-    chamado: "CH-2025-002", 
-    cartorio: "Cartório de Registro Civil - Rio de Janeiro",
-    estado: "RJ",
-    sistema: "WebRI",
-    implantador: "Maria Santos",
-    dataAgendada: "2025-01-18",
-    status: "Concluído",
-    ultimaAtividade: "1 dia atrás"
-  },
-  {
-    id: 3,
-    chamado: "CH-2025-003",
-    cartorio: "Cartório de Títulos - Brasília",
-    estado: "DF",
-    sistema: "Orion TN",
-    implantador: "Pedro Costa",
-    dataAgendada: "2025-01-20",
-    status: "Atrasado",
-    ultimaAtividade: "3 dias atrás"
-  }
-];
 
 export const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState<ProjectFilters>({});
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { projects, stats, loading: projectsLoading, createProject, updateProject, deleteProject } = useProjects();
+  const { getUserStats } = useUsers();
   
   console.log("[ADMIN DASHBOARD] Usuário logado:", user);
 
@@ -89,19 +65,81 @@ export const AdminDashboard = () => {
     return null;
   }
 
+  const userStats = getUserStats();
+
+  // Filter projects based on search term and filters
+  const filteredProjects = projects.filter(project => {
+    // Search filter
+    const searchMatch = !searchTerm || 
+      project.chamado.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.nome_cartorio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.user?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Status filter
+    const statusMatch = !filters.status || project.status === filters.status;
+
+    // Sistema filter
+    const sistemaMatch = !filters.sistema || project.sistema === filters.sistema;
+
+    // Estado filter
+    const estadoMatch = !filters.estado || project.estado === filters.estado;
+
+    // User filter
+    const userMatch = !filters.usuario_id || project.usuario_id === filters.usuario_id;
+
+    // Date filters
+    const dataAgendada = new Date(project.data_agendada);
+    const dataInicioMatch = !filters.data_inicio || dataAgendada >= new Date(filters.data_inicio);
+    const dataFimMatch = !filters.data_fim || dataAgendada <= new Date(filters.data_fim);
+
+    // Overdue filter
+    const now = new Date();
+    const isOverdue = project.status !== 'finalizado' && dataAgendada < now;
+    const atrasadosMatch = !filters.atrasados || isOverdue;
+
+    return searchMatch && statusMatch && sistemaMatch && estadoMatch && 
+           userMatch && dataInicioMatch && dataFimMatch && atrasadosMatch;
+  });
+
   const getStatusBadge = (status: string) => {
     const variants = {
-      "Em Andamento": "default",
-      "Concluído": "secondary",
-      "Atrasado": "destructive",
-      "Agendado": "outline"
-    } as const;
+      "aguardando": { variant: "outline" as const, label: "Aguardando" },
+      "em_andamento": { variant: "default" as const, label: "Em Andamento" },
+      "finalizado": { variant: "secondary" as const, label: "Finalizado" },
+      "cancelado": { variant: "destructive" as const, label: "Cancelado" }
+    };
+    
+    const config = variants[status as keyof typeof variants] || variants.aguardando;
     
     return (
-      <Badge variant={variants[status as keyof typeof variants] || "default"}>
-        {status}
+      <Badge variant={config.variant}>
+        {config.label}
       </Badge>
     );
+  };
+
+  const handleCreateProject = async (data: any) => {
+    await createProject(data);
+  };
+
+  const handleUpdateProject = async (data: any) => {
+    const { id, ...updates } = data;
+    await updateProject(id, updates);
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    await deleteProject(id);
+  };
+
+  const handleViewDetails = (project: any) => {
+    setSelectedProject(project);
+    setDetailsDialogOpen(true);
+  };
+
+  const isProjectOverdue = (project: any) => {
+    const today = new Date();
+    const scheduledDate = new Date(project.data_agendada);
+    return project.status !== 'finalizado' && scheduledDate < today;
   };
 
   return (
@@ -121,19 +159,19 @@ export const AdminDashboard = () => {
               <FolderOpen className="h-4 w-4 text-wine-red" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">12</div>
-              <p className="text-xs text-medium-gray">+2 esta semana</p>
+              <div className="text-2xl font-bold text-dark-gray">{stats.ativos}</div>
+              <p className="text-xs text-medium-gray">Em andamento</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
+              <CardTitle className="text-sm font-medium">Finalizados</CardTitle>
               <CheckCircle className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">8</div>
-              <p className="text-xs text-medium-gray">+3 esta semana</p>
+              <div className="text-2xl font-bold text-dark-gray">{stats.concluidos}</div>
+              <p className="text-xs text-medium-gray">Concluídos</p>
             </CardContent>
           </Card>
           
@@ -143,8 +181,8 @@ export const AdminDashboard = () => {
               <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">3</div>
-              <p className="text-xs text-medium-gray">-1 desde ontem</p>
+              <div className="text-2xl font-bold text-dark-gray">{stats.atrasados}</div>
+              <p className="text-xs text-medium-gray">Precisam atenção</p>
             </CardContent>
           </Card>
           
@@ -154,7 +192,7 @@ export const AdminDashboard = () => {
               <Users className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">5</div>
+              <div className="text-2xl font-bold text-dark-gray">{userStats.ativos}</div>
               <p className="text-xs text-medium-gray">Ativos no sistema</p>
             </CardContent>
           </Card>
@@ -179,7 +217,11 @@ export const AdminDashboard = () => {
                   <Users className="h-4 w-4" />
                   Gerenciar Usuários
                 </Button>
-                <Button variant="wine" className="gap-2">
+                <Button 
+                  variant="wine" 
+                  className="gap-2"
+                  onClick={() => setCreateDialogOpen(true)}
+                >
                   <Plus className="h-4 w-4" />
                   Novo Projeto
                 </Button>
@@ -198,10 +240,10 @@ export const AdminDashboard = () => {
                   className="pl-9"
                 />
               </div>
-              <Button variant="outline" className="gap-2">
-                <Filter className="h-4 w-4" />
-                Filtros
-              </Button>
+              <ProjectFiltersSheet 
+                filters={filters} 
+                onFiltersChange={setFilters} 
+              />
             </div>
 
             {/* Tabela de Projetos */}
@@ -221,29 +263,50 @@ export const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockProjects.map((project) => (
-                      <tr key={project.id} className="border-b hover:bg-muted/50 transition-colors">
-                        <td className="p-4 font-mono text-sm">{project.chamado}</td>
-                        <td className="p-4">
-                          <div>
-                            <div className="font-medium">{project.cartorio}</div>
-                            <div className="text-sm text-medium-gray">{project.estado}</div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <Badge variant="outline">{project.sistema}</Badge>
-                        </td>
-                        <td className="p-4">{project.implantador}</td>
-                        <td className="p-4">{new Date(project.dataAgendada).toLocaleDateString('pt-BR')}</td>
-                        <td className="p-4">{getStatusBadge(project.status)}</td>
-                        <td className="p-4 text-sm text-medium-gray">{project.ultimaAtividade}</td>
-                        <td className="p-4">
-                          <Button variant="outline" size="sm">
-                            Ver Detalhes
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                    {projectsLoading ? (
+                      <tr><td colSpan={8} className="p-8 text-center">Carregando projetos...</td></tr>
+                    ) : filteredProjects.length === 0 ? (
+                      <tr><td colSpan={8} className="p-8 text-center">Nenhum projeto encontrado</td></tr>
+                    ) : (
+                      filteredProjects.map((project) => (
+                        <tr key={project.id} className="border-b hover:bg-muted/50 transition-colors">
+                          <td className="p-4 font-mono text-sm">{project.chamado}</td>
+                          <td className="p-4">
+                            <div>
+                              <div className="font-medium">{project.nome_cartorio}</div>
+                              <div className="text-sm text-medium-gray">{project.estado}</div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <Badge variant="outline">{project.sistema}</Badge>
+                          </td>
+                          <td className="p-4">{project.user?.nome || "Não atribuído"}</td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-1">
+                              {new Date(project.data_agendada).toLocaleDateString('pt-BR')}
+                              {isProjectOverdue(project) && (
+                                <AlertTriangle className="h-3 w-3 text-warning" />
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4">{getStatusBadge(project.status)}</td>
+                          <td className="p-4 text-sm text-medium-gray">
+                            {new Date(project.updated_at).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="p-4">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewDetails(project)}
+                              className="gap-1"
+                            >
+                              <Eye className="h-3 w-3" />
+                              Ver Detalhes
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -251,6 +314,22 @@ export const AdminDashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Dialogs */}
+      <ProjectFormDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSubmit={handleCreateProject}
+        title="Criar Novo Projeto"
+      />
+
+      <ProjectDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        project={selectedProject}
+        onEdit={handleUpdateProject}
+        onDelete={handleDeleteProject}
+      />
     </div>
   );
 };
