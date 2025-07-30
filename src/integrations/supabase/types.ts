@@ -170,6 +170,33 @@ export type Database = {
           },
         ]
       }
+      comentarios_projeto: {
+        Row: {
+          created_at: string
+          id: string
+          projeto_id: string
+          texto: string
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          projeto_id: string
+          texto: string
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          projeto_id?: string
+          texto?: string
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       projetos: {
         Row: {
           chamado: string

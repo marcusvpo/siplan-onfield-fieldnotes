@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useProjects } from "@/hooks/use-projects";
+import { useProjectComments } from "@/hooks/use-project-comments";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Mic, 
@@ -63,17 +64,20 @@ const mockTimeline = [
   }
 ];
 
+
 export const MobileProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { projects, loading, updateProject } = useProjects();
+  const { comments, loading: commentsLoading, addComment } = useProjectComments(id);
   const { toast } = useToast();
   
   const [isRecording, setIsRecording] = useState(false);
   const [newText, setNewText] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isAddingComment, setIsAddingComment] = useState(false);
 
   const project = projects.find(p => p.id === id);
 
@@ -152,13 +156,14 @@ export const MobileProjectDetail = () => {
   const handleAddNote = async () => {
     if (!newText.trim() || !project) return;
     
-    // TODO: Implementar adição de nota/comentário ao projeto
-    // Por enquanto, apenas limpa o campo
-    setNewText("");
-    toast({
-      title: "Nota adicionada",
-      description: "Sua observação foi registrada."
-    });
+    setIsAddingComment(true);
+    const success = await addComment(newText.trim());
+    
+    if (success) {
+      setNewText("");
+    }
+    
+    setIsAddingComment(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -181,7 +186,7 @@ export const MobileProjectDetail = () => {
     return labels[status as keyof typeof labels] || status;
   };
 
-  if (loading) {
+  if (loading || commentsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -264,8 +269,43 @@ export const MobileProjectDetail = () => {
           </div>
         </div>
 
-        {/* Timeline */}
+        {/* Comments/Timeline */}
         <div className="p-4 space-y-6">
+          {comments.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold text-dark-gray mb-4">Histórico de Atividades</h3>
+              <div className="space-y-3">
+                {comments.map((comment) => (
+                  <Card key={comment.id} className="shadow-sm">
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-wine-red-light p-2 rounded-lg">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-medium-gray">
+                              {new Date(comment.created_at).toLocaleString('pt-BR')}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {comment.user?.nome}
+                            </Badge>
+                          </div>
+                          
+                          <div className="bg-light-gray p-3 rounded-lg">
+                            <p className="text-sm text-dark-gray">{comment.texto}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mock Timeline for reference */}
           {mockTimeline.map((day, dayIndex) => (
             <div key={day.date}>
               <div className="flex items-center gap-3 mb-4">
@@ -348,10 +388,14 @@ export const MobileProjectDetail = () => {
           />
           <Button 
             className="bg-wine-red hover:bg-wine-red-hover"
-            disabled={!newText.trim()}
+            disabled={!newText.trim() || isAddingComment}
             onClick={handleAddNote}
           >
-            <Send className="h-4 w-4" />
+            {isAddingComment ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
         
