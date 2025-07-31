@@ -7,9 +7,11 @@ export interface Project {
   chamado: string;
   nome_cartorio: string;
   estado: string;
-  sistema: "Orion PRO" | "Orion REG" | "Orion TN" | "WebRI";
+  sistema: string;
   email_contato: string;
   data_agendada: string;
+  data_inicio_implantacao?: string;
+  data_fim_implantacao?: string;
   status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
   observacao_admin?: string;
   usuario_id?: string;
@@ -86,9 +88,11 @@ export const useProjects = () => {
     chamado: string;
     nome_cartorio: string;
     estado: string;
-    sistema: "Orion PRO" | "Orion REG" | "Orion TN" | "WebRI";
+    sistema: string;
     email_contato: string;
-    data_agendada: string;
+    data_agendada?: string;
+    data_inicio_implantacao: string;
+    data_fim_implantacao: string;
     status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
     observacao_admin?: string;
     usuario_id?: string;
