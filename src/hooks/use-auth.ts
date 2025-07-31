@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
+import { useToast } from "@/hooks/use-toast";
 
 export interface AuthUser {
   id: string;
@@ -14,23 +15,47 @@ export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
-        if (session?.user) {
-          await loadUserData(session.user);
-        } else {
+        console.log('[AUTH] Estado de autenticação mudou:', event, session?.user?.id);
+        
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('[AUTH] Token atualizado automaticamente');
+        } else if (event === 'SIGNED_OUT') {
+          console.log('[AUTH] Usuário deslogado');
+          setUser(null);
+          setSession(null);
+        } else if (event === 'SIGNED_IN') {
+          console.log('[AUTH] Usuário logado');
+          setSession(session);
+          if (session?.user) {
+            await loadUserData(session.user);
+          }
+        }
+        
+        // Handle session expiration
+        if (!session && event !== 'SIGNED_OUT' && user) {
+          console.log('[AUTH] Sessão expirada detectada');
+          toast({
+            title: "Sessão Expirada",
+            description: "Sua sessão expirou. Por favor, faça login novamente.",
+            variant: "destructive",
+            duration: 5000
+          });
           setUser(null);
         }
+        
         setLoading(false);
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[AUTH] Verificando sessão existente:', session?.user?.id);
       setSession(session);
       if (session?.user) {
         await loadUserData(session.user);
@@ -38,8 +63,28 @@ export const useAuth = () => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Periodic session check
+    const checkSession = setInterval(async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('[AUTH] Erro ao verificar sessão:', error);
+        if (user) {
+          toast({
+            title: "Erro de Autenticação",
+            description: "Ocorreu um erro com sua sessão. Redirecionando para login.",
+            variant: "destructive"
+          });
+          setUser(null);
+          setSession(null);
+        }
+      }
+    }, 30000); // Verifica a cada 30 segundos
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(checkSession);
+    };
+  }, [user, toast]);
 
   const loadUserData = async (authUser: any) => {
     try {

@@ -30,19 +30,14 @@ interface FormData {
   estado: string;
   sistema: string;
   email_contato: string;
-  data_agendada: string;
+  data_inicio_implantacao: string;
+  data_fim_implantacao: string;
   status: string;
   usuario_id?: string;
   observacao_admin?: string;
 }
 
-const sistemas = [
-  "Orion PRO",
-  "WebRI",
-  "Orion TN",
-  "Sistema Cartório",
-  "Outro"
-];
+// Removido - sistema será campo de texto livre
 
 const statusOptions = [
   { value: "aguardando", label: "Aguardando" },
@@ -76,7 +71,8 @@ export const ProjectFormDialog = ({
       estado: project.estado,
       sistema: project.sistema,
       email_contato: project.email_contato,
-      data_agendada: project.data_agendada,
+      data_inicio_implantacao: project.data_inicio_implantacao || project.data_agendada || "",
+      data_fim_implantacao: project.data_fim_implantacao || project.data_agendada || "",
       status: project.status,
       usuario_id: project.usuario_id || "",
       observacao_admin: project.observacao_admin || ""
@@ -86,6 +82,15 @@ export const ProjectFormDialog = ({
   });
 
   const handleFormSubmit = async (data: FormData) => {
+    // Validar datas
+    const dataInicio = new Date(data.data_inicio_implantacao);
+    const dataFim = new Date(data.data_fim_implantacao);
+    
+    if (dataFim < dataInicio) {
+      alert("A data final não pode ser menor que a data inicial.");
+      return;
+    }
+    
     setLoading(true);
     try {
       await onSubmit(data);
@@ -99,7 +104,6 @@ export const ProjectFormDialog = ({
   };
 
   const watchedStatus = watch("status");
-  const watchedSistema = watch("sistema");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,7 +121,8 @@ export const ProjectFormDialog = ({
               <Label htmlFor="chamado">Chamado *</Label>
               <Input
                 id="chamado"
-                placeholder="CH-2025-001"
+                type="number"
+                placeholder="645374"
                 {...register("chamado", { required: "Chamado é obrigatório" })}
               />
               {errors.chamado && (
@@ -152,6 +157,18 @@ export const ProjectFormDialog = ({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="sistema">Sistema *</Label>
+            <Input
+              id="sistema"
+              placeholder="Orion PRO, WebRI (separe múltiplos sistemas por vírgula)"
+              {...register("sistema", { required: "Sistema é obrigatório" })}
+            />
+            {errors.sistema && (
+              <span className="text-sm text-destructive">{errors.sistema.message}</span>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="email_contato">Email de Contato *</Label>
             <Input
               id="email_contato"
@@ -172,33 +189,26 @@ export const ProjectFormDialog = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sistema">Sistema *</Label>
-              <Select value={watchedSistema} onValueChange={(value) => setValue("sistema", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o sistema" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sistemas.map((sistema) => (
-                    <SelectItem key={sistema} value={sistema}>
-                      {sistema}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.sistema && (
-                <span className="text-sm text-destructive">{errors.sistema.message}</span>
+              <Label htmlFor="data_inicio_implantacao">Início da Implantação *</Label>
+              <Input
+                id="data_inicio_implantacao"
+                type="date"
+                {...register("data_inicio_implantacao", { required: "Data de início é obrigatória" })}
+              />
+              {errors.data_inicio_implantacao && (
+                <span className="text-sm text-destructive">{errors.data_inicio_implantacao.message}</span>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_agendada">Data Agendada *</Label>
+              <Label htmlFor="data_fim_implantacao">Final da Implantação *</Label>
               <Input
-                id="data_agendada"
+                id="data_fim_implantacao"
                 type="date"
-                {...register("data_agendada", { required: "Data agendada é obrigatória" })}
+                {...register("data_fim_implantacao", { required: "Data final é obrigatória" })}
               />
-              {errors.data_agendada && (
-                <span className="text-sm text-destructive">{errors.data_agendada.message}</span>
+              {errors.data_fim_implantacao && (
+                <span className="text-sm text-destructive">{errors.data_fim_implantacao.message}</span>
               )}
             </div>
           </div>

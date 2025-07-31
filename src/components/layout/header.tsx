@@ -1,19 +1,53 @@
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   userType: "admin" | "implantador";
   userName?: string;
   onLogout?: () => void;
+  showBackButton?: boolean;
+  backPath?: string;
 }
 
-export const Header = ({ userType, userName, onLogout }: HeaderProps) => {
+export const Header = ({ userType, userName, onLogout, showBackButton, backPath }: HeaderProps) => {
+  const navigate = useNavigate();
+  
+  const handleLogoClick = () => {
+    const dashboardPath = userType === "admin" ? "/admin/dashboard" : "/mobile";
+    navigate(dashboardPath);
+  };
+
+  const handleBackClick = () => {
+    if (backPath) {
+      navigate(backPath);
+    } else {
+      const dashboardPath = userType === "admin" ? "/admin/dashboard" : "/mobile";
+      navigate(dashboardPath);
+    }
+  };
+
   return (
     <header className="bg-white border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Logo size="md" />
+          <div className="flex items-center gap-4">
+            {showBackButton && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleBackClick}
+                className="gap-2 text-medium-gray hover:text-dark-gray"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+              </Button>
+            )}
+            <div className="cursor-pointer" onClick={handleLogoClick}>
+              <Logo size="md" />
+            </div>
+          </div>
           
           <div className="flex items-center gap-4">
             {userName && (
