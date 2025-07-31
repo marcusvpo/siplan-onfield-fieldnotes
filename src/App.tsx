@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Login } from "./pages/login";
 import { AdminDashboard } from "./pages/admin/dashboard";
 import { UsersManagement } from "./pages/admin/users";
+import AdminProjectsPage from "./pages/admin/projetos";
+import AdminConfiguracoesPage from "./pages/admin/configuracoes";
 import { MobileHome } from "./pages/mobile/home";
 import { MobileProjectDetail } from "./pages/mobile/project-detail";
 import NotFound from "./pages/NotFound";
@@ -72,6 +74,16 @@ const App = () => (
           <Route path="/admin/users" element={
             <ProtectedRoute requiredType="admin">
               <UsersManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/projetos" element={
+            <ProtectedRoute requiredType="admin">
+              <AdminProjectsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/configuracoes" element={
+            <ProtectedRoute requiredType="admin">
+              <AdminConfiguracoesPage />
             </ProtectedRoute>
           } />
           <Route path="/mobile" element={

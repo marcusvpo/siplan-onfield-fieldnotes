@@ -11,13 +11,14 @@ import {
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ import { useAuth } from "@/hooks/use-auth";
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Projetos", url: "/admin/projetos", icon: FolderOpen },
-  { title: "Usuários", url: "/admin/usuarios", icon: Users },
+  { title: "Usuários", url: "/admin/users", icon: Users },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ];
 
@@ -49,12 +50,24 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
-      <SidebarContent>
+    <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
+      <SidebarHeader className="border-b border-border">
+        <div className="flex items-center gap-2 px-4 py-3">
+          <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">S</span>
+          </div>
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm">Siplan</span>
+              <span className="text-xs text-muted-foreground">On-Field</span>
+            </div>
+          )}
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="flex-1">
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
-            {!collapsed && "Menu Principal"}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -64,15 +77,15 @@ export function AdminSidebar() {
                       to={item.url} 
                       end={item.url === "/admin"}
                       className={({ isActive: navIsActive }) => 
-                        `flex items-center ${
+                        `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
                           navIsActive || isActive(item.url)
-                            ? "bg-primary text-primary-foreground font-medium" 
-                            : "hover:bg-muted/50"
+                            ? "bg-primary text-primary-foreground" 
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`
                       }
                     >
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span className="ml-2">{item.title}</span>}
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -80,19 +93,23 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <div className="mt-auto p-2">
+      </SidebarContent>
+      
+      <SidebarFooter className="border-t border-border">
+        <div className="p-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size={collapsed ? "icon" : "default"}
             onClick={handleLogout}
-            className="w-full"
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors ${
+              collapsed ? 'justify-center' : ''
+            }`}
           >
-            <LogOut className="h-4 w-4" />
-            {!collapsed && <span className="ml-2">Sair</span>}
+            <LogOut className="h-4 w-4 flex-shrink-0" />
+            {!collapsed && <span>Sair</span>}
           </Button>
         </div>
-      </SidebarContent>
+      </SidebarFooter>
     </Sidebar>
   );
 }
