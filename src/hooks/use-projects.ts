@@ -98,9 +98,14 @@ export const useProjects = () => {
     usuario_id?: string;
   }) => {
     try {
+      const insertData = {
+        ...projectData,
+        data_agendada: projectData.data_inicio_implantacao // Set data_agendada to match start date for compatibility
+      };
+      
       const { data, error } = await supabase
         .from('projetos')
-        .insert([projectData])
+        .insert(insertData as any)
         .select(`
           *,
           user:users(nome, username)
@@ -134,9 +139,11 @@ export const useProjects = () => {
     chamado?: string;
     nome_cartorio?: string;
     estado?: string;
-    sistema?: "Orion PRO" | "Orion REG" | "Orion TN" | "WebRI";
+    sistema?: string;
     email_contato?: string;
     data_agendada?: string;
+    data_inicio_implantacao?: string;
+    data_fim_implantacao?: string;
     status?: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
     observacao_admin?: string;
     usuario_id?: string;
@@ -144,7 +151,7 @@ export const useProjects = () => {
     try {
       const { data, error } = await supabase
         .from('projetos')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id)
         .select(`
           *,

@@ -201,7 +201,9 @@ export type Database = {
         Row: {
           chamado: string
           created_at: string
-          data_agendada: string
+          data_agendada: string | null
+          data_fim_implantacao: string
+          data_inicio_implantacao: string
           email_contato: string
           estado: string
           id: string
@@ -215,7 +217,9 @@ export type Database = {
         Insert: {
           chamado: string
           created_at?: string
-          data_agendada: string
+          data_agendada?: string | null
+          data_fim_implantacao: string
+          data_inicio_implantacao: string
           email_contato: string
           estado: string
           id?: string
@@ -229,7 +233,9 @@ export type Database = {
         Update: {
           chamado?: string
           created_at?: string
-          data_agendada?: string
+          data_agendada?: string | null
+          data_fim_implantacao?: string
+          data_inicio_implantacao?: string
           email_contato?: string
           estado?: string
           id?: string
