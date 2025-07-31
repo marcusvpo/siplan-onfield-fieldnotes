@@ -88,13 +88,14 @@ export const AdminDashboard = () => {
     const userMatch = !filters.usuario_id || project.usuario_id === filters.usuario_id;
 
     // Date filters
-    const dataAgendada = new Date(project.data_agendada);
-    const dataInicioMatch = !filters.data_inicio || dataAgendada >= new Date(filters.data_inicio);
-    const dataFimMatch = !filters.data_fim || dataAgendada <= new Date(filters.data_fim);
+    const dataInicio = new Date(project.data_inicio_implantacao);
+    const dataFim = new Date(project.data_fim_implantacao);
+    const dataInicioMatch = !filters.data_inicio || dataInicio >= new Date(filters.data_inicio);
+    const dataFimMatch = !filters.data_fim || dataFim <= new Date(filters.data_fim);
 
     // Overdue filter
     const now = new Date();
-    const isOverdue = project.status !== 'finalizado' && dataAgendada < now;
+    const isOverdue = project.status !== 'finalizado' && dataFim < now;
     const atrasadosMatch = !filters.atrasados || isOverdue;
 
     return searchMatch && statusMatch && sistemaMatch && estadoMatch && 
@@ -138,8 +139,8 @@ export const AdminDashboard = () => {
 
   const isProjectOverdue = (project: any) => {
     const today = new Date();
-    const scheduledDate = new Date(project.data_agendada);
-    return project.status !== 'finalizado' && scheduledDate < today;
+    const endDate = new Date(project.data_fim_implantacao);
+    return project.status !== 'finalizado' && endDate < today;
   };
 
   return (
@@ -256,7 +257,7 @@ export const AdminDashboard = () => {
                       <th className="text-left p-4 font-medium">Cartório</th>
                       <th className="text-left p-4 font-medium">Sistema</th>
                       <th className="text-left p-4 font-medium">Implantador</th>
-                      <th className="text-left p-4 font-medium">Data Agendada</th>
+                      <th className="text-left p-4 font-medium">Período</th>
                       <th className="text-left p-4 font-medium">Status</th>
                       <th className="text-left p-4 font-medium">Última Atividade</th>
                       <th className="text-left p-4 font-medium">Ações</th>
@@ -283,7 +284,10 @@ export const AdminDashboard = () => {
                           <td className="p-4">{project.user?.nome || "Não atribuído"}</td>
                           <td className="p-4">
                             <div className="flex items-center gap-1">
-                              {new Date(project.data_agendada).toLocaleDateString('pt-BR')}
+                              <div className="text-sm">
+                                <div>{new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')}</div>
+                                <div className="text-medium-gray">até {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</div>
+                              </div>
                               {isProjectOverdue(project) && (
                                 <AlertTriangle className="h-3 w-3 text-warning" />
                               )}

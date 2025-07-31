@@ -9,9 +9,8 @@ export interface Project {
   estado: string;
   sistema: string;
   email_contato: string;
-  data_agendada: string;
-  data_inicio_implantacao?: string;
-  data_fim_implantacao?: string;
+  data_inicio_implantacao: string;
+  data_fim_implantacao: string;
   status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
   observacao_admin?: string;
   usuario_id?: string;
@@ -66,8 +65,8 @@ export const useProjects = () => {
         ativos: projectsData.filter(p => p.status === 'em_andamento').length,
         concluidos: projectsData.filter(p => p.status === 'finalizado').length,
         atrasados: projectsData.filter(p => {
-          const dataAgendada = new Date(p.data_agendada);
-          return p.status !== 'finalizado' && dataAgendada < now;
+          const dataFim = new Date(p.data_fim_implantacao);
+          return p.status !== 'finalizado' && dataFim < now;
         }).length,
         agendados: projectsData.filter(p => p.status === 'aguardando').length
       };
@@ -90,7 +89,6 @@ export const useProjects = () => {
     estado: string;
     sistema: string;
     email_contato: string;
-    data_agendada?: string;
     data_inicio_implantacao: string;
     data_fim_implantacao: string;
     status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
@@ -99,8 +97,16 @@ export const useProjects = () => {
   }) => {
     try {
       const insertData = {
-        ...projectData,
-        data_agendada: projectData.data_inicio_implantacao // Set data_agendada to match start date for compatibility
+        chamado: projectData.chamado,
+        nome_cartorio: projectData.nome_cartorio,
+        estado: projectData.estado,
+        sistema: projectData.sistema,
+        email_contato: projectData.email_contato,
+        data_inicio_implantacao: projectData.data_inicio_implantacao,
+        data_fim_implantacao: projectData.data_fim_implantacao,
+        status: projectData.status,
+        observacao_admin: projectData.observacao_admin,
+        usuario_id: projectData.usuario_id
       };
       
       const { data, error } = await supabase
@@ -141,7 +147,6 @@ export const useProjects = () => {
     estado?: string;
     sistema?: string;
     email_contato?: string;
-    data_agendada?: string;
     data_inicio_implantacao?: string;
     data_fim_implantacao?: string;
     status?: "aguardando" | "em_andamento" | "finalizado" | "cancelado";

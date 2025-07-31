@@ -71,8 +71,8 @@ export const ProjectFormDialog = ({
       estado: project.estado,
       sistema: project.sistema,
       email_contato: project.email_contato,
-      data_inicio_implantacao: project.data_inicio_implantacao || project.data_agendada || "",
-      data_fim_implantacao: project.data_fim_implantacao || project.data_agendada || "",
+      data_inicio_implantacao: project.data_inicio_implantacao || "",
+      data_fim_implantacao: project.data_fim_implantacao || "",
       status: project.status,
       usuario_id: project.usuario_id || "",
       observacao_admin: project.observacao_admin || ""

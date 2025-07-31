@@ -83,8 +83,8 @@ export const ProjectDetailsDialog = ({
 
   const isOverdue = () => {
     const today = new Date();
-    const scheduledDate = new Date(project.data_agendada);
-    return project.status !== 'finalizado' && scheduledDate < today;
+    const endDate = new Date(project.data_fim_implantacao);
+    return project.status !== 'finalizado' && endDate < today;
   };
 
   return (
@@ -182,11 +182,11 @@ export const ProjectDetailsDialog = ({
                   <p className="text-sm">{project.sistema}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Data Agendada</label>
+                  <label className="text-sm font-medium text-muted-foreground">Período de Implantação</label>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <p className="text-sm">
-                      {new Date(project.data_agendada).toLocaleDateString('pt-BR')}
+                      {new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} até {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                 </div>

@@ -234,7 +234,7 @@ export const MobileProjectDetail = () => {
           <div className="flex flex-wrap gap-4 text-sm text-medium-gray">
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              <span>{new Date(project.data_agendada).toLocaleDateString('pt-BR')}</span>
+              <span>{new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} - {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</span>
             </div>
             <div className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />

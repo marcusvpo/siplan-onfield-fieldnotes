@@ -101,7 +101,7 @@ export const MobileHome = () => {
                   
                   <div className="flex items-center gap-2 text-sm text-medium-gray">
                     <Calendar className="h-4 w-4" />
-                    <span>Agendado para {new Date(project.data_agendada).toLocaleDateString('pt-BR')}</span>
+                    <span>Período: {new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} até {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</span>
                   </div>
                   
                   <div className="flex items-center gap-2 text-sm">
