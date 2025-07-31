@@ -113,18 +113,22 @@ export const useUsers = () => {
 
   const deleteUser = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', id);
+      // Use edge function for atomic deletion from both users table and Auth
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: id }
+      });
 
       if (error) throw error;
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro na exclusão do usuário');
+      }
 
       setUsers(prev => prev.filter(u => u.id !== id));
 
       toast({
         title: "Usuário excluído",
-        description: "O usuário foi removido com sucesso."
+        description: "O usuário foi removido com sucesso de ambos os sistemas."
       });
 
       return { error: null };
