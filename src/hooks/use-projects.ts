@@ -9,6 +9,7 @@ export interface Project {
   estado: string;
   sistema: string;
   email_contato: string;
+  telefone_contato?: string;
   data_inicio_implantacao: string;
   data_fim_implantacao: string;
   status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
@@ -94,6 +95,7 @@ export const useProjects = () => {
     estado: string;
     sistema: string;
     email_contato: string;
+    telefone_contato?: string;
     data_inicio_implantacao: string;
     data_fim_implantacao: string;
     status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
@@ -107,6 +109,7 @@ export const useProjects = () => {
         estado: projectData.estado,
         sistema: projectData.sistema,
         email_contato: projectData.email_contato,
+        telefone_contato: projectData.telefone_contato,
         data_inicio_implantacao: projectData.data_inicio_implantacao,
         data_fim_implantacao: projectData.data_fim_implantacao,
         status: projectData.status,
@@ -157,6 +160,7 @@ export const useProjects = () => {
     estado?: string;
     sistema?: string;
     email_contato?: string;
+    telefone_contato?: string;
     data_inicio_implantacao?: string;
     data_fim_implantacao?: string;
     status?: "aguardando" | "em_andamento" | "finalizado" | "cancelado";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/layout/header";
+import { AdminLayout } from "@/components/layout/admin-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import { useUsers } from "@/hooks/use-users";
 import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
 import { ProjectDetailsDialog } from "@/components/admin/project-details-dialog";
 import { ProjectFiltersSheet, ProjectFilters } from "@/components/admin/project-filters";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { isProjectLate } from "@/utils/status-colors";
 import { 
   Users, 
   FolderOpen, 
@@ -144,14 +146,8 @@ export const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-light-gray">
-      <Header 
-        userType="admin" 
-        userName={user?.nome || "Administrador"}
-        onLogout={handleLogout}
-      />
-      
-      <main className="max-w-7xl mx-auto p-6 space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -317,7 +313,7 @@ export const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-      </main>
+      </div>
 
       {/* Dialogs */}
       <ProjectFormDialog
@@ -334,6 +330,6 @@ export const AdminDashboard = () => {
         onEdit={handleUpdateProject}
         onDelete={handleDeleteProject}
       />
-    </div>
+    </AdminLayout>
   );
 };

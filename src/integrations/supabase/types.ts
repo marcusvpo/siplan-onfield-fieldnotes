@@ -210,6 +210,7 @@ export type Database = {
           observacao_admin: string | null
           sistema: Database["public"]["Enums"]["sistema_type"]
           status: Database["public"]["Enums"]["project_status"]
+          telefone_contato: string | null
           updated_at: string
           usuario_id: string | null
         }
@@ -225,6 +226,7 @@ export type Database = {
           observacao_admin?: string | null
           sistema: Database["public"]["Enums"]["sistema_type"]
           status?: Database["public"]["Enums"]["project_status"]
+          telefone_contato?: string | null
           updated_at?: string
           usuario_id?: string | null
         }
@@ -240,6 +242,7 @@ export type Database = {
           observacao_admin?: string | null
           sistema?: Database["public"]["Enums"]["sistema_type"]
           status?: Database["public"]["Enums"]["project_status"]
+          telefone_contato?: string | null
           updated_at?: string
           usuario_id?: string | null
         }

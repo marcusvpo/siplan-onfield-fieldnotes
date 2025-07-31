@@ -30,6 +30,7 @@ interface FormData {
   estado: string;
   sistema: string;
   email_contato: string;
+  telefone_contato?: string;
   data_inicio_implantacao: string;
   data_fim_implantacao: string;
   status: string;
@@ -71,6 +72,7 @@ export const ProjectFormDialog = ({
       estado: project.estado,
       sistema: project.sistema,
       email_contato: project.email_contato,
+      telefone_contato: project.telefone_contato || "",
       data_inicio_implantacao: project.data_inicio_implantacao || "",
       data_fim_implantacao: project.data_fim_implantacao || "",
       status: project.status,
@@ -168,23 +170,35 @@ export const ProjectFormDialog = ({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email_contato">Email de Contato *</Label>
-            <Input
-              id="email_contato"
-              type="email"
-              placeholder="contato@cartorio.com.br"
-              {...register("email_contato", { 
-                required: "Email é obrigatório",
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: "Email inválido"
-                }
-              })}
-            />
-            {errors.email_contato && (
-              <span className="text-sm text-destructive">{errors.email_contato.message}</span>
-            )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email_contato">Email de Contato *</Label>
+              <Input
+                id="email_contato"
+                type="email"
+                placeholder="contato@cartorio.com.br"
+                {...register("email_contato", { 
+                  required: "Email é obrigatório",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Email inválido"
+                  }
+                })}
+              />
+              {errors.email_contato && (
+                <span className="text-sm text-destructive">{errors.email_contato.message}</span>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="telefone_contato">Telefone de Contato</Label>
+              <Input
+                id="telefone_contato"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                {...register("telefone_contato")}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -242,7 +256,7 @@ export const ProjectFormDialog = ({
                 <SelectContent>
                   <SelectItem value="none">Nenhum implantador</SelectItem>
                   {implantadores.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
+                    <SelectItem key={user.auth_id} value={user.auth_id || user.id}>
                       {user.nome} ({user.username})
                     </SelectItem>
                   ))}
