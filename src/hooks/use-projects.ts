@@ -49,26 +49,31 @@ export const useProjects = () => {
         .from('projetos')
         .select(`
           *,
-          user:users(nome, username)
+          user:users!inner(nome, username)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const projectsData = data as Project[];
-      setProjects(projectsData);
+      // Transform data to ensure user is a single object, not array
+      const projectsData = data?.map(project => ({
+        ...project,
+        user: Array.isArray(project.user) ? project.user[0] : project.user
+      })) as Project[];
+      
+      setProjects(projectsData || []);
 
       // Calculate stats
       const now = new Date();
       const statsData = {
-        total: projectsData.length,
-        ativos: projectsData.filter(p => p.status === 'em_andamento').length,
-        concluidos: projectsData.filter(p => p.status === 'finalizado').length,
-        atrasados: projectsData.filter(p => {
+        total: projectsData?.length || 0,
+        ativos: projectsData?.filter(p => p.status === 'em_andamento').length || 0,
+        concluidos: projectsData?.filter(p => p.status === 'finalizado').length || 0,
+        atrasados: projectsData?.filter(p => {
           const dataFim = new Date(p.data_fim_implantacao);
           return p.status !== 'finalizado' && dataFim < now;
-        }).length,
-        agendados: projectsData.filter(p => p.status === 'aguardando').length
+        }).length || 0,
+        agendados: projectsData?.filter(p => p.status === 'aguardando').length || 0
       };
       setStats(statsData);
     } catch (error: any) {
@@ -114,13 +119,18 @@ export const useProjects = () => {
         .insert(insertData as any)
         .select(`
           *,
-          user:users(nome, username)
+          user:users!inner(nome, username)
         `)
         .single();
 
       if (error) throw error;
 
-      const newProject = data as Project;
+      // Transform data to ensure user is a single object, not array
+      const newProject = {
+        ...data,
+        user: Array.isArray(data.user) ? data.user[0] : data.user
+      } as Project;
+      
       setProjects(prev => [newProject, ...prev]);
       await loadProjects(); // Reload to get updated stats
       
@@ -160,13 +170,18 @@ export const useProjects = () => {
         .eq('id', id)
         .select(`
           *,
-          user:users(nome, username)
+          user:users!inner(nome, username)
         `)
         .single();
 
       if (error) throw error;
 
-      const updatedProject = data as Project;
+      // Transform data to ensure user is a single object, not array
+      const updatedProject = {
+        ...data,
+        user: Array.isArray(data.user) ? data.user[0] : data.user
+      } as Project;
+      
       setProjects(prev => 
         prev.map(p => p.id === id ? updatedProject : p)
       );
@@ -218,8 +233,8 @@ export const useProjects = () => {
     }
   };
 
-  const getProjectsByUser = (userId: string) => {
-    return projects.filter(p => p.usuario_id === userId);
+  const getProjectsByUser = (authId: string) => {
+    return projects.filter(p => p.usuario_id === authId);
   };
 
   useEffect(() => {

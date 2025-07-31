@@ -243,15 +243,7 @@ export type Database = {
           updated_at?: string
           usuario_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "projetos_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       relatorios: {
         Row: {
