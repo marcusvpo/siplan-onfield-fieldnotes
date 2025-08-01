@@ -46,13 +46,13 @@ export const useProjects = () => {
   const loadProjects = async () => {
     try {
       setLoading(true);
-    const { data, error } = await supabase
-      .from('projetos')
-      .select(`
-        *,
-        user:users!projetos_usuario_id_users_auth_id_fkey(nome, username)
-      `)
-      .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('projetos')
+        .select(`
+          *,
+          user:users!projetos_usuario_id_users_auth_id_fkey(nome, username, auth_id)
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 

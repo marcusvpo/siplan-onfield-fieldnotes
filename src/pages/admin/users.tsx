@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Header } from "@/components/layout/header";
+import { AdminLayout } from "@/components/layout/admin-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/use-auth";
 import { useUsers } from "@/hooks/use-users";
 import { UserFormDialog } from "@/components/admin/user-form-dialog";
 import { 
@@ -27,11 +26,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export const UsersManagement = () => {
+export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   
-  const { user: currentUser, signOut } = useAuth();
   const { 
     users, 
     loading, 
@@ -61,48 +59,45 @@ export const UsersManagement = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-light-gray flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-wine-red border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-medium-gray">Carregando usuários...</p>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-light-gray">
-      <Header 
-        userType="admin" 
-        userName={currentUser?.nome || "Administrador"}
-        onLogout={signOut}
-      />
-      
-      <main className="max-w-7xl mx-auto p-6 space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Usuários</h1>
+            <p className="text-muted-foreground">
+              Gerencie implantadores e administradores do sistema
+            </p>
+          </div>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Usuário
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-wine-red" />
-                  Gerenciamento de Usuários
-                </CardTitle>
-                <CardDescription>
-                  Gerencie implantadores e suas permissões de acesso
-                </CardDescription>
-              </div>
-              
-              <Button variant="wine" className="gap-2" onClick={() => setDialogOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Novo Implantador
-              </Button>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Gerenciamento de Usuários
+            </CardTitle>
+            <CardDescription>
+              Gerencie implantadores e suas permissões de acesso
+            </CardDescription>
           </CardHeader>
           
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-medium-gray" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome, email ou username..."
                   value={searchTerm}
@@ -113,10 +108,10 @@ export const UsersManagement = () => {
             </div>
 
             {/* Tabela de Usuários */}
-            <div className="rounded-lg border bg-white">
+            <div className="rounded-lg border">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-light-gray">
+                  <thead className="bg-muted">
                     <tr>
                       <th className="text-left p-4 font-medium">Nome</th>
                       <th className="text-left p-4 font-medium">Email</th>
@@ -129,14 +124,14 @@ export const UsersManagement = () => {
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => (
-                      <tr key={user.id} className="border-b hover:bg-light-gray/50 transition-colors">
+                      <tr key={user.id} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="p-4 font-medium">{user.nome}</td>
-                        <td className="p-4 text-medium-gray">{user.email}</td>
+                        <td className="p-4 text-muted-foreground">{user.email}</td>
                         <td className="p-4">
                           {user.username ? (
                             <Badge variant="outline">{user.username}</Badge>
                           ) : (
-                            <span className="text-medium-gray text-sm">N/A</span>
+                            <span className="text-muted-foreground text-sm">N/A</span>
                           )}
                         </td>
                         <td className="p-4">
@@ -149,7 +144,7 @@ export const UsersManagement = () => {
                             {user.ativo ? "Ativo" : "Inativo"}
                           </Badge>
                         </td>
-                        <td className="p-4 text-sm text-medium-gray">
+                        <td className="p-4 text-sm text-muted-foreground">
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
                         </td>
                         <td className="p-4">
@@ -215,21 +210,21 @@ export const UsersManagement = () => {
                 
                 {filteredUsers.length === 0 && (
                   <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-medium-gray mx-auto mb-2" />
-                    <p className="text-medium-gray">Nenhum usuário encontrado</p>
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">Nenhum usuário encontrado</p>
                   </div>
                 )}
               </div>
             </div>
           </CardContent>
         </Card>
-      </main>
 
-      <UserFormDialog 
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSubmit={handleCreateUser}
-      />
-    </div>
+        <UserFormDialog 
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSubmit={handleCreateUser}
+        />
+      </div>
+    </AdminLayout>
   );
-};
+}

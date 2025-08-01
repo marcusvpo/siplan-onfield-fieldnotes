@@ -9,10 +9,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useProjects } from "@/hooks/use-projects";
 import { useUsers } from "@/hooks/use-users";
+import { useAtividadesRecentes } from "@/hooks/use-atividades-recentes";
 import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
 import { ProjectDetailsDialog } from "@/components/admin/project-details-dialog";
 import { ProjectFiltersSheet, ProjectFilters } from "@/components/admin/project-filters";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { KanbanBoard } from "@/components/admin/kanban-board";
 import { isProjectLate } from "@/utils/status-colors";
 import { 
   Users, 
@@ -37,6 +39,7 @@ export const AdminDashboard = () => {
   const { toast } = useToast();
   const { projects, stats, loading: projectsLoading, createProject, updateProject, deleteProject } = useProjects();
   const { getUserStats } = useUsers();
+  const { atividades, loading: atividadesLoading } = useAtividadesRecentes();
   
   console.log("[ADMIN DASHBOARD] Usuário logado:", user);
 
@@ -195,122 +198,75 @@ export const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Controles */}
+        {/* Últimas Atividades */}
         <Card>
           <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle>Projetos de Implantação</CardTitle>
-                <CardDescription>
-                  Gerencie todos os projetos e acompanhe o progresso em tempo real
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/admin/users")}
-                  className="gap-2"
-                >
-                  <Users className="h-4 w-4" />
-                  Gerenciar Usuários
-                </Button>
-                <Button 
-                  variant="wine" 
-                  className="gap-2"
-                  onClick={() => setCreateDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                  Novo Projeto
-                </Button>
-              </div>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Últimas Atividades
+            </CardTitle>
+            <CardDescription>
+              Acompanhe as modificações recentes no sistema
+            </CardDescription>
           </CardHeader>
           
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-medium-gray" />
-                <Input
-                  placeholder="Buscar por cartório, chamado ou implantador..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
+            {atividadesLoading ? (
+              <div className="text-center py-4">Carregando atividades...</div>
+            ) : atividades.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">Nenhuma atividade recente</div>
+            ) : (
+              <div className="space-y-3">
+                {atividades.map((atividade) => (
+                  <div key={atividade.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                    <div className="w-2 h-2 rounded-full bg-primary mt-2"></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">
+                          {atividade.user?.nome || "Usuário"} {atividade.acao.toLowerCase()}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(atividade.created_at).toLocaleDateString('pt-BR')} às{' '}
+                          {new Date(atividade.created_at).toLocaleTimeString('pt-BR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
+                      {atividade.descricao && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {atividade.descricao}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <ProjectFiltersSheet 
-                filters={filters} 
-                onFiltersChange={setFilters} 
-              />
-            </div>
+            )}
+          </CardContent>
+        </Card>
 
-            {/* Tabela de Projetos */}
-            <div className="rounded-md border">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-4 font-medium">Chamado</th>
-                      <th className="text-left p-4 font-medium">Cartório</th>
-                      <th className="text-left p-4 font-medium">Sistema</th>
-                      <th className="text-left p-4 font-medium">Implantador</th>
-                      <th className="text-left p-4 font-medium">Período</th>
-                      <th className="text-left p-4 font-medium">Status</th>
-                      <th className="text-left p-4 font-medium">Última Atividade</th>
-                      <th className="text-left p-4 font-medium">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {projectsLoading ? (
-                      <tr><td colSpan={8} className="p-8 text-center">Carregando projetos...</td></tr>
-                    ) : filteredProjects.length === 0 ? (
-                      <tr><td colSpan={8} className="p-8 text-center">Nenhum projeto encontrado</td></tr>
-                    ) : (
-                      filteredProjects.map((project) => (
-                        <tr key={project.id} className="border-b hover:bg-muted/50 transition-colors">
-                          <td className="p-4 font-mono text-sm">{project.chamado}</td>
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">{project.nome_cartorio}</div>
-                              <div className="text-sm text-medium-gray">{project.estado}</div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge variant="outline">{project.sistema}</Badge>
-                          </td>
-                          <td className="p-4">{project.user?.nome || "Não atribuído"}</td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-1">
-                              <div className="text-sm">
-                                <div>{new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')}</div>
-                                <div className="text-medium-gray">até {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</div>
-                              </div>
-                              {isProjectOverdue(project) && (
-                                <AlertTriangle className="h-3 w-3 text-warning" />
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-4">{getStatusBadge(project.status)}</td>
-                          <td className="p-4 text-sm text-medium-gray">
-                            {new Date(project.updated_at).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="p-4">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleViewDetails(project)}
-                              className="gap-1"
-                            >
-                              <Eye className="h-3 w-3" />
-                              Ver Detalhes
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        {/* Kanban de Projetos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderOpen className="h-5 w-5" />
+              Visão Kanban dos Projetos
+            </CardTitle>
+            <CardDescription>
+              Visualize os projetos organizados por status
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            {projectsLoading ? (
+              <div className="text-center py-8">Carregando projetos...</div>
+            ) : (
+              <KanbanBoard 
+                projects={projects} 
+                onViewProject={handleViewDetails} 
+              />
+            )}
           </CardContent>
         </Card>
       </div>

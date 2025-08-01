@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { useAuth } from "@/hooks/use-auth";
 import { Login } from "./pages/login";
 import { AdminDashboard } from "./pages/admin/dashboard";
-import { UsersManagement } from "./pages/admin/users";
+import AdminUsersPage from "./pages/admin/users";
 import AdminProjectsPage from "./pages/admin/projetos";
 import AdminConfiguracoesPage from "./pages/admin/configuracoes";
 import { MobileHome } from "./pages/mobile/home";
@@ -73,7 +73,7 @@ const App = () => (
           } />
           <Route path="/admin/users" element={
             <ProtectedRoute requiredType="admin">
-              <UsersManagement />
+              <AdminUsersPage />
             </ProtectedRoute>
           } />
           <Route path="/admin/projetos" element={

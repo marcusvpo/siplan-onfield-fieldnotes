@@ -15,8 +15,10 @@ export const Header = ({ userType, userName, onLogout, showBackButton, backPath 
   const navigate = useNavigate();
   
   const handleLogoClick = () => {
-    const dashboardPath = userType === "admin" ? "/admin/dashboard" : "/mobile";
-    navigate(dashboardPath);
+    // Logo não é mais clicável para admins - apenas visual
+    if (userType === "implantador") {
+      navigate("/mobile");
+    }
   };
 
   const handleBackClick = () => {
@@ -44,7 +46,7 @@ export const Header = ({ userType, userName, onLogout, showBackButton, backPath 
                 Voltar
               </Button>
             )}
-            <div className="cursor-pointer" onClick={handleLogoClick}>
+            <div className={userType === "implantador" ? "cursor-pointer" : ""} onClick={userType === "implantador" ? handleLogoClick : undefined}>
               <Logo size="md" />
             </div>
           </div>
