@@ -18,7 +18,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUsers } from "@/hooks/use-users";
 import { Project } from "@/hooks/use-projects";
 
-// ... (interface ProjectFormDialogProps e FormData permanecem as mesmas)
+// Tipagens do formulário e props do diálogo
+export type ProjectStatus = "aguardando" | "em_andamento" | "finalizado" | "cancelado";
+
+export interface ProjectFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: ProjectFormValues) => Promise<void> | void;
+  project?: Project;
+  title: string;
+}
+
+export type ProjectFormValues = {
+  chamado: string;
+  nome_cartorio: string;
+  estado: string;
+  sistema: string;
+  email_contato: string;
+  telefone_contato?: string;
+  data_inicio_implantacao: string;
+  data_fim_implantacao: string;
+  status: ProjectStatus;
+  usuario_id?: string;
+  observacao_admin?: string;
+};
+
+const statusOptions = [
+  { value: "aguardando", label: "Aguardando" },
+  { value: "em_andamento", label: "Em Andamento" },
+  { value: "finalizado", label: "Finalizado" },
+  { value: "cancelado", label: "Cancelado" },
+];
+
 
 export const ProjectFormDialog = ({ 
   open, 
@@ -40,7 +71,7 @@ export const ProjectFormDialog = ({
     watch,
     reset,
     formState: { errors }
-  } = useForm<FormData>({
+  } = useForm<ProjectFormValues>({
     defaultValues: project ? {
       chamado: project.chamado,
       nome_cartorio: project.nome_cartorio,
@@ -52,14 +83,14 @@ export const ProjectFormDialog = ({
       data_fim_implantacao: project.data_fim_implantacao || "",
       status: project.status,
       // Garante que usuario_id seja o auth_id ou undefined
-      usuario_id: project.usuario_id || "", 
+      usuario_id: project.usuario_id || undefined, 
       observacao_admin: project.observacao_admin || ""
     } : {
       status: "aguardando"
     }
   });
 
-  const handleFormSubmit = async (data: FormData) => {
+  const handleFormSubmit = async (data: ProjectFormValues) => {
     // Validar datas
     const dataInicio = new Date(data.data_inicio_implantacao);
     const dataFim = new Date(data.data_fim_implantacao);
@@ -199,7 +230,7 @@ export const ProjectFormDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status *</Label>
-              <Select value={watchedStatus} onValueChange={(value) => setValue("status", value)}>
+              <Select value={watchedStatus} onValueChange={(value) => setValue("status", value as ProjectStatus)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
