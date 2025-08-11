@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types"; // Importar Database type
 
 export interface Project {
   id: string;
@@ -12,7 +13,8 @@ export interface Project {
   telefone_contato?: string;
   data_inicio_implantacao: string;
   data_fim_implantacao: string;
-  status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
+  // Tipo union explícito para status
+  status: "aguardando" | "em_andamento" | "finalizado" | "cancelado"; 
   observacao_admin?: string;
   usuario_id?: string;
   created_at: string;
@@ -59,6 +61,8 @@ export const useProjects = () => {
       // Transform data to ensure user is a single object, not array
       const projectsData = data?.map(project => ({
         ...project,
+        // Cast do status para o tipo union esperado
+        status: project.status as Project['status'],
         user: Array.isArray(project.user) ? project.user[0] : project.user
       })) as Project[];
       
@@ -119,7 +123,7 @@ export const useProjects = () => {
       
       const { data, error } = await supabase
         .from('projetos')
-        .insert(insertData as any)
+        .insert(insertData as Database['public']['Tables']['projetos']['Insert']) // Cast para o tipo de insert do Supabase
         .select(`
           *,
           user:users!projetos_usuario_id_users_auth_id_fkey(nome, username)
@@ -129,10 +133,11 @@ export const useProjects = () => {
       if (error) throw error;
 
       // Transform data to ensure user is a single object, not array
-      const newProject = {
+      const newProject: Project = { // Cast para Project
         ...data,
+        status: data.status as Project['status'], // Cast do status
         user: Array.isArray(data.user) ? data.user[0] : data.user
-      } as Project;
+      };
       
       setProjects(prev => [newProject, ...prev]);
       await loadProjects(); // Reload to get updated stats
@@ -170,7 +175,7 @@ export const useProjects = () => {
     try {
       const { data, error } = await supabase
         .from('projetos')
-        .update(updates as any)
+        .update(updates as Database['public']['Tables']['projetos']['Update']) // Cast para o tipo de update do Supabase
         .eq('id', id)
         .select(`
           *,
@@ -181,10 +186,11 @@ export const useProjects = () => {
       if (error) throw error;
 
       // Transform data to ensure user is a single object, not array
-      const updatedProject = {
+      const updatedProject: Project = { // Cast para Project
         ...data,
+        status: data.status as Project['status'], // Cast do status
         user: Array.isArray(data.user) ? data.user[0] : data.user
-      } as Project;
+      };
       
       setProjects(prev => 
         prev.map(p => p.id === id ? updatedProject : p)
@@ -238,7 +244,10 @@ export const useProjects = () => {
   };
 
   const getProjectsByUser = (authId: string) => {
-    return projects.filter(p => (p as any).user?.auth_id === authId || p.usuario_id === authId);
+    // RLS no Supabase já garante que 'projects' conterá apenas projetos do usuário logado,
+    // então a filtragem por authId aqui se torna redundante na maioria dos casos, mas pode ser útil para segurança extra.
+    // Garanta que o tipo de 'tipo' de usuário esteja correto no useUsers para que 'user.auth_id' seja acessível.
+    return projects.filter(p => p.usuario_id === authId);
   };
 
   useEffect(() => {
