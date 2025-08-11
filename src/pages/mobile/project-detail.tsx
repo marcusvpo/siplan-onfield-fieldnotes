@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { useAuth } from "@/hooks/use-auth";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectComments } from "@/hooks/use-project-comments";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { 
   Mic, 
   MicOff,
@@ -21,7 +22,8 @@ import {
   MapPin,
   FileText,
   Image as ImageIcon,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown
 } from "lucide-react";
 
 const mockTimeline = [
@@ -69,15 +71,17 @@ export const MobileProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { projects, loading, updateProject } = useProjects();
+  const { projects, loading } = useProjects();
   const { comments, loading: commentsLoading, addComment } = useProjectComments(id);
   const { toast } = useToast();
   
   const [isRecording, setIsRecording] = useState(false);
   const [newText, setNewText] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  
   const [isAddingComment, setIsAddingComment] = useState(false);
+
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const project = projects.find(p => p.id === id);
 
@@ -132,26 +136,6 @@ export const MobileProjectDetail = () => {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!project) return;
-    
-    setIsUpdatingStatus(true);
-    try {
-      await updateProject(project.id, { status: newStatus as any });
-      toast({
-        title: "Status atualizado",
-        description: `Status do projeto alterado para ${getStatusLabel(newStatus)}`
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao atualizar status",
-        description: "Não foi possível atualizar o status do projeto.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdatingStatus(false);
-    }
-  };
 
   const handleAddNote = async () => {
     if (!newText.trim() || !project) return;
@@ -212,61 +196,53 @@ export const MobileProjectDetail = () => {
       <main className="pb-24">
         {/* Project Info - Fixed Header */}
         <div className="bg-white border-b border-border p-4 sticky top-16 z-10">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/mobile')}
-                className="p-1"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs font-mono text-medium-gray">{project.chamado}</span>
+          <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate('/mobile')}
+                  className="p-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-xs font-mono text-medium-gray">{project.chamado}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge className={getStatusColor(project.status)}>
+                  {getStatusLabel(project.status)}
+                </Badge>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-1" aria-label="Alternar informações do projeto">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
             </div>
-            <Badge className={getStatusColor(project.status)}>
-              {getStatusLabel(project.status)}
-            </Badge>
-          </div>
-          <h1 className="text-lg font-bold text-dark-gray mb-1">
-            {project.nome_cartorio}
-          </h1>
-          <div className="flex flex-wrap gap-4 text-sm text-medium-gray">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              <span>{new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} - {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              <span>{project.sistema}</span>
-            </div>
-          </div>
-          
-          {project.observacao_admin && (
-            <div className="mt-3 p-2 bg-wine-red-light rounded-lg">
-              <p className="text-xs text-wine-red font-medium">Observação do Admin:</p>
-              <p className="text-sm text-dark-gray">{project.observacao_admin}</p>
-            </div>
-          )}
 
-          {/* Status Update */}
-          <div className="mt-3">
-            <label className="text-xs text-medium-gray mb-1 block">Atualizar Status:</label>
-            <Select 
-              value={project.status} 
-              onValueChange={handleStatusChange}
-              disabled={isUpdatingStatus}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="aguardando">Agendado</SelectItem>
-                <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                <SelectItem value="finalizado">Concluído</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <CollapsibleContent>
+              <h1 className="text-lg font-bold text-dark-gray mb-1">
+                {project.nome_cartorio}
+              </h1>
+              <div className="flex flex-wrap gap-4 text-sm text-medium-gray">
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>{new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} - {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span>{project.sistema}</span>
+                </div>
+              </div>
+              {project.observacao_admin && (
+                <div className="mt-3 p-2 bg-wine-red-light rounded-lg">
+                  <p className="text-xs text-wine-red font-medium">Observação do Admin:</p>
+                  <p className="text-sm text-dark-gray">{project.observacao_admin}</p>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* Comments/Timeline */}
@@ -424,14 +400,6 @@ export const MobileProjectDetail = () => {
             </Button>
           </div>
           
-          <Button 
-            variant="outline" 
-            className="bg-success text-white hover:bg-success/90 border-success"
-            onClick={() => handleStatusChange('finalizado')}
-            disabled={isUpdatingStatus || project.status === 'finalizado'}
-          >
-            {project.status === 'finalizado' ? 'Finalizado' : 'Finalizar'}
-          </Button>
         </div>
         
         {isRecording && (

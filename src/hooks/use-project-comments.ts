@@ -32,7 +32,7 @@ export const useProjectComments = (projectId?: string) => {
         .from('comentarios_projeto')
         .select(`
           *,
-          user:users(nome, tipo)
+          user:users!fk_comentarios_usuario_auth_id(nome, tipo)
         `)
         .eq('projeto_id', projectId)
         .order('created_at', { ascending: true });
@@ -56,25 +56,23 @@ export const useProjectComments = (projectId?: string) => {
     if (!projectId || !texto.trim()) return false;
 
     try {
-      // Get current user ID from users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+      // Obter o usuário autenticado (auth_id)
+      const { data: { user: authUser } } = await supabase.auth.getUser();
 
-      if (userError) throw userError;
+      if (!authUser) {
+        throw new Error("Usuário não autenticado.");
+      }
 
       const { data, error } = await supabase
         .from('comentarios_projeto')
-        .insert([{
+        .insert([{ 
           projeto_id: projectId,
-          usuario_id: userData.id,
+          usuario_id: authUser.id, // usar auth_id diretamente
           texto: texto.trim()
         }])
         .select(`
           *,
-          user:users(nome, tipo)
+          user:users!fk_comentarios_usuario_auth_id(nome, tipo)
         `)
         .single();
 
