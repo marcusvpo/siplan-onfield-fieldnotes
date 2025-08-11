@@ -257,7 +257,6 @@ export type Database = {
           nome_cartorio: string,
           observacao_admin: string | null,
           sistema: string[],
-          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
           status: Database["public"]["Enums"]["project_status"][number], 
           telefone_contato: string | null,
           updated_at: string,
@@ -274,7 +273,6 @@ export type Database = {
           nome_cartorio: string,
           observacao_admin?: string | null,
           sistema: string[],
-          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
           status?: Database["public"]["Enums"]["project_status"][number], 
           telefone_contato?: string | null,
           updated_at?: string,
@@ -291,7 +289,6 @@ export type Database = {
           nome_cartorio?: string,
           observacao_admin?: string | null,
           sistema?: string[],
-          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
           status?: Database["public"]["Enums"]["project_status"][number], 
           telefone_contato?: string | null,
           updated_at?: string,
@@ -429,7 +426,6 @@ export type Database = {
           email: string,
           id: string,
           nome: string,
-          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
           tipo: Database["public"]["Enums"]["user_type"][number], 
           updated_at: string,
           username: string | null,
@@ -441,7 +437,6 @@ export type Database = {
           email: string,
           id?: string,
           nome: string,
-          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
           tipo?: Database["public"]["Enums"]["user_type"][number], 
           updated_at?: string,
           username?: string | null,
@@ -453,7 +448,6 @@ export type Database = {
           email?: string,
           id?: string,
           nome?: string,
-          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
           tipo?: Database["public"]["Enums"]["user_type"][number], 
           updated_at?: string,
           username?: string | null,
@@ -499,7 +493,8 @@ export type Database = {
       user_type: ["admin", "implantador"],
     },
     CompositeTypes: {
-      [_ in never]: never
+      // CORRIGIDO AQUI: Removido 'key:'
+      [_ in never]: never 
     }
   }
 }
@@ -607,7 +602,7 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: key: keyof DatabaseWithoutInternals },
+    | { schema: keyof DatabaseWithoutInternals }, // CORRIGIDO AQUI
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
