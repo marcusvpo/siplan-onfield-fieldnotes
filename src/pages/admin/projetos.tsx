@@ -42,10 +42,10 @@ export default function AdminProjectsPage() {
     const matchesSearch = !searchTerm || 
       project.nome_cartorio.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.chamado.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.sistema.toLowerCase().includes(searchTerm.toLowerCase());
+      (Array.isArray(project.sistema) && project.sistema.some(s => s.toLowerCase().includes(searchTerm.toLowerCase())));
 
     const matchesStatus = !filters.status || project.status === filters.status;
-    const matchesSistema = !filters.sistema || project.sistema.toLowerCase().includes(filters.sistema.toLowerCase());
+    const matchesSistema = !filters.sistema || (Array.isArray(project.sistema) && project.sistema.some(s => s.toLowerCase().includes(filters.sistema!.toLowerCase())));
     const matchesEstado = !filters.estado || project.estado === filters.estado;
     const matchesImplantador = !filters.usuario_id || project.usuario_id === filters.usuario_id;
 
@@ -181,7 +181,7 @@ export default function AdminProjectsPage() {
                         <TableCell className="font-medium">{project.chamado}</TableCell>
                         <TableCell>{project.nome_cartorio}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{project.sistema}</Badge>
+                          <Badge variant="outline">{Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema}</Badge>
                         </TableCell>
                         <TableCell>{project.estado}</TableCell>
                         <TableCell>

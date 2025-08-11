@@ -250,7 +250,7 @@ export type Database = {
           id: string
           nome_cartorio: string
           observacao_admin: string | null
-          sistema: string
+          sistema: string[]
           status: Database["public"]["Enums"]["project_status"]
           telefone_contato: string | null
           updated_at: string
@@ -266,7 +266,7 @@ export type Database = {
           id?: string
           nome_cartorio: string
           observacao_admin?: string | null
-          sistema: string
+          sistema: string[]
           status?: Database["public"]["Enums"]["project_status"]
           telefone_contato?: string | null
           updated_at?: string
@@ -282,7 +282,7 @@ export type Database = {
           id?: string
           nome_cartorio?: string
           observacao_admin?: string | null
-          sistema?: string
+          sistema?: string[]
           status?: Database["public"]["Enums"]["project_status"]
           telefone_contato?: string | null
           updated_at?: string

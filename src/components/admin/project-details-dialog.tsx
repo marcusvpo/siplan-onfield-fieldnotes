@@ -179,7 +179,7 @@ export const ProjectDetailsDialog = ({
               <CardContent className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Sistema</label>
-                  <p className="text-sm">{project.sistema}</p>
+                  <p className="text-sm">{Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Período de Implantação</label>

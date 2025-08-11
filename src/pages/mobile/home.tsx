@@ -16,9 +16,9 @@ import {
 export const MobileHome = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { projects, loading, getProjectsByUser } = useProjects();
+  const { projects, loading } = useProjects();
 
-  const userProjects = user ? getProjectsByUser(user.id) : [];
+  const userProjects = projects;
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -106,7 +106,7 @@ export const MobileHome = () => {
                   
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-wine-red" />
-                    <span className="text-wine-red font-medium">{project.sistema}</span>
+                    <span className="text-wine-red font-medium">{Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema}</span>
                   </div>
                 </div>
 

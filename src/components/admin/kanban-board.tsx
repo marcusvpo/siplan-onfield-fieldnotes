@@ -7,7 +7,7 @@ interface Project {
   id: string;
   chamado: string;
   nome_cartorio: string;
-  sistema: string;
+  sistema: string[];
   estado: string;
   status: string;
   data_inicio_implantacao: string;
@@ -76,7 +76,7 @@ export const KanbanBoard = ({ projects, onViewProject }: KanbanBoardProps) => {
                   
                   <CardContent className="pt-0 space-y-2">
                     <Badge variant="outline" className="text-xs">
-                      {project.sistema}
+                      {Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema}
                     </Badge>
                     
                     <div className="flex items-center text-xs text-muted-foreground">

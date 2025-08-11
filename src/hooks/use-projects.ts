@@ -7,7 +7,7 @@ export interface Project {
   chamado: string;
   nome_cartorio: string;
   estado: string;
-  sistema: string;
+  sistema: string[];
   email_contato: string;
   telefone_contato?: string;
   data_inicio_implantacao: string;
@@ -93,7 +93,7 @@ export const useProjects = () => {
     chamado: string;
     nome_cartorio: string;
     estado: string;
-    sistema: string;
+    sistema: string[];
     email_contato: string;
     telefone_contato?: string;
     data_inicio_implantacao: string;
@@ -158,7 +158,7 @@ export const useProjects = () => {
     chamado?: string;
     nome_cartorio?: string;
     estado?: string;
-    sistema?: string;
+    sistema?: string[];
     email_contato?: string;
     telefone_contato?: string;
     data_inicio_implantacao?: string;

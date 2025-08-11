@@ -78,13 +78,14 @@ export const AdminDashboard = () => {
     const searchMatch = !searchTerm || 
       project.chamado.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.nome_cartorio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.user?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
+      project.user?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (Array.isArray(project.sistema) && project.sistema.some(s => s.toLowerCase().includes(searchTerm.toLowerCase())));
 
     // Status filter
     const statusMatch = !filters.status || project.status === filters.status;
 
-    // Sistema filter
-    const sistemaMatch = !filters.sistema || project.sistema === filters.sistema;
+    // Sistema filter (single select filter value against multi-value field)
+    const sistemaMatch = !filters.sistema || (Array.isArray(project.sistema) && project.sistema.includes(filters.sistema));
 
     // Estado filter
     const estadoMatch = !filters.estado || project.estado === filters.estado;

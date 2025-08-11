@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useUsers } from "@/hooks/use-users";
 import { Project } from "@/hooks/use-projects";
+import { useSistemas } from "@/hooks/use-sistemas";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 // Tipagens do formulário e props do diálogo
 export type ProjectStatus = "aguardando" | "em_andamento" | "finalizado" | "cancelado";
@@ -33,7 +35,7 @@ export type ProjectFormValues = {
   chamado: string;
   nome_cartorio: string;
   estado: string;
-  sistema: string;
+  sistema: string[];
   email_contato: string;
   telefone_contato?: string;
   data_inicio_implantacao: string;
@@ -60,9 +62,9 @@ export const ProjectFormDialog = ({
 }: ProjectFormDialogProps) => {
   const [loading, setLoading] = useState(false);
   const { getActiveImplantadores } = useUsers();
-  // Filtra os implantadores para incluir apenas aqueles que possuem um auth_id
-  // visto que a FK na tabela 'projetos' referencia 'users.auth_id'
+  const { sistemas } = useSistemas();
   const assignableImplantadores = getActiveImplantadores().filter(user => user.auth_id);
+  const sistemaOptions = sistemas.filter(s => s.ativo).map(s => ({ label: s.nome, value: s.nome }));
 
   const {
     register,
@@ -76,7 +78,7 @@ export const ProjectFormDialog = ({
       chamado: project.chamado,
       nome_cartorio: project.nome_cartorio,
       estado: project.estado,
-      sistema: project.sistema,
+      sistema: project.sistema || [],
       email_contato: project.email_contato,
       telefone_contato: project.telefone_contato || "",
       data_inicio_implantacao: project.data_inicio_implantacao || "",
@@ -86,7 +88,8 @@ export const ProjectFormDialog = ({
       usuario_id: project.usuario_id || undefined, 
       observacao_admin: project.observacao_admin || ""
     } : {
-      status: "aguardando"
+      status: "aguardando",
+      sistema: []
     }
   });
 
@@ -163,15 +166,13 @@ export const ProjectFormDialog = ({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sistema">Sistema *</Label>
-            <Input
-              id="sistema"
-              placeholder="Orion PRO, WebRI (separe múltiplos sistemas por vírgula)"
-              {...register("sistema", { required: "Sistema é obrigatório" })}
+            <Label htmlFor="sistema">Sistemas</Label>
+            <MultiSelect
+              options={sistemaOptions}
+              value={watch("sistema") || []}
+              onChange={(vals) => setValue("sistema", vals)}
+              placeholder="Selecione um ou mais sistemas"
             />
-            {errors.sistema && (
-              <span className="text-sm text-destructive">{errors.sistema.message}</span>
-            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
