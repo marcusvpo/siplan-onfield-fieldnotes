@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react"; // Adicionado useRef
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types"; // Importar Database type
 
 // Definir a URL do webhook do n8n aqui
 // IMPORTANTE: Em produção, isto deve ser uma variável de ambiente (process.env.N8N_TRANSCRIBE_WEBHOOK_URL)
@@ -9,16 +10,16 @@ const N8N_TRANSCRIBE_WEBHOOK_URL = "SUA_URL_DO_WEBHOOK_AQUI"; // Substitua pela 
 export interface ProjectComment {
   id: string;
   projeto_id: string;
-  usuario_id: string | null; // Ajustado para ser nullable
+  usuario_id: string | null;
   texto: string;
   created_at: string;
   updated_at: string;
-  type: "text" | "audio"; // Adicionado tipo de comentário
-  audio_url: string | null; // Adicionado URL do áudio no Storage
-  user?: {
+  type: "text" | "audio";
+  audio_url: string | null;
+  user: { // user não é opcional, mas pode ser null (por isso o tipo union)
     nome: string;
-    tipo: 'admin' | 'implantador';
-  };
+    tipo: "admin" | "implantador"; // Tipo union explícito
+  } | null; // Pode ser null se usuario_id for null ou a relação não for encontrada
 }
 
 export const useProjectComments = (projectId?: string) => {
@@ -35,6 +36,7 @@ export const useProjectComments = (projectId?: string) => {
 
     try {
       setLoading(true);
+      // Ajuste para pegar 'user' e 'tipo' corretamente, tratando nulls
       const { data, error } = await supabase
         .from('comentarios_projeto')
         .select(`
@@ -46,13 +48,24 @@ export const useProjectComments = (projectId?: string) => {
 
       if (error) throw error;
 
-      setComments(data as ProjectComment[]); // Casting para a interface atualizada
+      // Mapeia os dados para garantir a tipagem correta de `user` e `tipo`
+      const fetchedComments: ProjectComment[] = data.map(comment => ({
+        ...comment,
+        // Garante que 'user' é null se a relação falhou ou usuario_id é null
+        user: comment.user ? {
+          nome: comment.user.nome,
+          tipo: (comment.user.tipo as "admin" | "implantador"), // Cast do tipo
+        } : null,
+        type: comment.type as "text" | "audio", // Cast do tipo
+      })) as ProjectComment[]; // Cast final para garantir o array de ProjectComment
+
+      setComments(fetchedComments);
 
       // Pré-carrega URLs assinadas para áudios existentes
-      const audioComments = (data as ProjectComment[]).filter(c => c.type === 'audio' && c.audio_url);
+      const audioComments = fetchedComments.filter(c => c.type === 'audio' && c.audio_url);
       const newAudioUrls: Record<string, string> = {};
       for (const comment of audioComments) {
-        if (comment.audio_url) { // Verifica novamente se audio_url não é nulo
+        if (comment.audio_url) {
           const { data: signedUrlData, error: signedUrlError } = await supabase.storage
             .from('project_files')
             .createSignedUrl(comment.audio_url, 60 * 60); // URL válida por 1 hora
@@ -105,7 +118,17 @@ export const useProjectComments = (projectId?: string) => {
 
       if (error) throw error;
 
-      setComments(prev => [...prev, data as ProjectComment]);
+      // Mapeia o dado retornado para garantir a tipagem correta de `user` e `tipo`
+      const newComment: ProjectComment = {
+        ...data,
+        user: data.user ? {
+          nome: data.user.nome,
+          tipo: (data.user.tipo as "admin" | "implantador"), // Cast do tipo
+        } : null,
+        type: data.type as "text" | "audio", // Cast do tipo
+      };
+
+      setComments(prev => [...prev, newComment]);
       
       toast({
         title: "Comentário adicionado",
@@ -172,6 +195,15 @@ export const useProjectComments = (projectId?: string) => {
         setAudioUrls(prev => ({ ...prev, [data.id]: signedUrlData.signedUrl }));
       }
 
+      // Mapeia o dado retornado para garantir a tipagem correta de `user` e `tipo`
+      const newComment: ProjectComment = {
+        ...data,
+        user: data.user ? {
+          nome: data.user.nome,
+          tipo: (data.user.tipo as "admin" | "implantador"), // Cast do tipo
+        } : null,
+        type: data.type as "text" | "audio", // Cast do tipo
+      };
 
       // Dispara webhook do n8n para transcrição (se configurado)
       if (N8N_TRANSCRIBE_WEBHOOK_URL) {
@@ -181,7 +213,7 @@ export const useProjectComments = (projectId?: string) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              comentario_id: (data as any)?.id, // ID do comentário recém-criado
+              comentario_id: (newComment)?.id, // ID do comentário recém-criado
               project_id: projectId,
               user_auth_id: authUser.id,
               audio_url: signedUrlData?.signedUrl ?? null, // URL assinada
@@ -193,7 +225,7 @@ export const useProjectComments = (projectId?: string) => {
         }
       }
 
-      setComments(prev => [...prev, data as ProjectComment]);
+      setComments(prev => [...prev, newComment]);
       
       toast({
         title: "Áudio enviado",
@@ -221,7 +253,7 @@ export const useProjectComments = (projectId?: string) => {
     loading,
     loadComments,
     addComment,
-    addAudioComment, // <--- EXPORTADO
-    audioUrls // <--- EXPORTADO
+    addAudioComment,
+    audioUrls
   };
 };
