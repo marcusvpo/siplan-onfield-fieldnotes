@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectComments } from "@/hooks/use-project-comments";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { 
   Mic, 
@@ -26,45 +27,6 @@ import {
   ChevronDown
 } from "lucide-react";
 
-const mockTimeline = [
-  {
-    date: "2025-01-13",
-    activities: [
-      {
-        id: 1,
-        type: "audio",
-        content: "Chegamos ao cartório às 9h, recepção muito atenciosa...",
-        duration: "0:45",
-        timestamp: "09:15"
-      },
-      {
-        id: 2, 
-        type: "text",
-        content: "Reunião inicial realizada com sucesso. Definidos os requisitos técnicos.",
-        timestamp: "14:30"
-      }
-    ]
-  },
-  {
-    date: "2025-01-14",
-    activities: [
-      {
-        id: 3,
-        type: "audio", 
-        content: "Iniciando configuração do servidor principal...",
-        duration: "1:23",
-        timestamp: "08:45"
-      },
-      {
-        id: 4,
-        type: "attachment",
-        content: "Foto da configuração de rede",
-        filename: "config_rede.jpg",
-        timestamp: "10:20"
-      }
-    ]
-  }
-];
 
 
 export const MobileProjectDetail = () => {
@@ -72,7 +34,7 @@ export const MobileProjectDetail = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { projects, loading } = useProjects();
-  const { comments, loading: commentsLoading, addComment } = useProjectComments(id);
+  const { comments, loading: commentsLoading, addComment, addAudioComment } = useProjectComments(id);
   const { toast } = useToast();
   
   const [isRecording, setIsRecording] = useState(false);
@@ -82,6 +44,9 @@ export const MobileProjectDetail = () => {
   const [isAddingComment, setIsAddingComment] = useState(false);
 
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
 
   const project = projects.find(p => p.id === id);
 
@@ -96,19 +61,63 @@ export const MobileProjectDetail = () => {
     }
   }, [project, loading, navigate, toast]);
 
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
-    // Timer simulation
-    const timer = setInterval(() => {
-      setRecordingTime(prev => prev + 1);
-    }, 1000);
-    
-    setTimeout(() => {
-      clearInterval(timer);
-      setIsRecording(false);
-      setRecordingTime(0);
-    }, 5000);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+
+      const chunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstart = () => {
+        setIsRecording(true);
+        setRecordingTime(0);
+      };
+
+      mediaRecorder.onstop = async () => {
+        setIsRecording(false);
+        setRecordingTime(0);
+
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setIsAddingComment(true);
+        await addAudioComment(blob);
+        setIsAddingComment(false);
+
+        // Encerrar tracks
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      mediaRecorder.start();
+
+      // Atualiza cronômetro durante a gravação
+      const timer = setInterval(() => {
+        setRecordingTime(prev => {
+          if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+            clearInterval(timer);
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao acessar microfone",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state === 'recording') {
+      mr.stop();
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -170,6 +179,34 @@ export const MobileProjectDetail = () => {
     return labels[status as keyof typeof labels] || status;
   };
 
+  // Gera URLs assinadas para áudios quando comentários mudam
+  useEffect(() => {
+    const genUrls = async () => {
+      const pending = comments.filter(c => c.type === 'audio' && c.audio_url && !audioUrls[c.id]);
+      if (pending.length === 0) return;
+      const newMap: Record<string, string> = {};
+      for (const c of pending) {
+        const { data, error } = await supabase.storage
+          .from('project_files')
+          .createSignedUrl(c.audio_url!, 60 * 60);
+        if (!error && data?.signedUrl) {
+          newMap[c.id] = data.signedUrl;
+        }
+      }
+      if (Object.keys(newMap).length) {
+        setAudioUrls(prev => ({ ...prev, ...newMap }));
+      }
+    };
+    genUrls();
+  }, [comments]);
+
+  // Agrupa comentários por dia (YYYY-MM-DD)
+  const groupedComments = comments.reduce((acc: Record<string, typeof comments>, c) => {
+    const key = new Date(c.created_at).toISOString().slice(0,10);
+    (acc[key] = acc[key] || []).push(c);
+    return acc;
+  }, {} as Record<string, typeof comments>);
+
   if (loading || commentsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -195,7 +232,7 @@ export const MobileProjectDetail = () => {
       
       <main className="pb-24">
         {/* Project Info - Fixed Header */}
-        <div className="bg-white border-b border-border p-4 sticky top-16 z-10">
+        <div className="bg-white border-b border-border p-4">
           <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -247,163 +284,104 @@ export const MobileProjectDetail = () => {
 
         {/* Comments/Timeline */}
         <div className="p-4 space-y-6">
-          {comments.length > 0 && (
+          {Object.keys(groupedComments).length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-dark-gray mb-4">Histórico de Atividades</h3>
-              <div className="space-y-3">
-                {comments.map((comment) => (
-                  <Card key={comment.id} className="shadow-sm">
-                    <CardContent className="p-3">
-                      <div className="flex items-start gap-3">
-                        <div className="bg-wine-red-light p-2 rounded-lg">
-                          <FileText className="h-4 w-4" />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-medium-gray">
-                              {new Date(comment.created_at).toLocaleString('pt-BR')}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {comment.user?.nome}
-                            </Badge>
+              {Object.entries(groupedComments).sort(([a],[b]) => a.localeCompare(b)).map(([day, dayComments]) => (
+                <div key={day} className="mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-px bg-border flex-1"></div>
+                    <span className="text-sm font-medium text-dark-gray px-3 py-1 bg-light-gray rounded-full">
+                      {formatDate(day)}
+                    </span>
+                    <div className="h-px bg-border flex-1"></div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {dayComments.map((comment) => (
+                      <Card key={comment.id} className="shadow-sm">
+                        <CardContent className="p-3">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-wine-red-light p-2 rounded-lg">
+                              <FileText className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs text-medium-gray">
+                                  {new Date(comment.created_at).toLocaleString('pt-BR')}
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {comment.user?.nome}
+                                </Badge>
+                              </div>
+
+                              {comment.type === 'audio' ? (
+                                <div className="bg-wine-red-light p-3 rounded-lg">
+                                  <audio
+                                    className="w-full"
+                                    controls
+                                    src={audioUrls[comment.id]}
+                                  />
+                                  <p className="text-sm text-dark-gray mt-2">{comment.texto}</p>
+                                </div>
+                              ) : (
+                                <div className="bg-light-gray p-3 rounded-lg">
+                                  <p className="text-sm text-dark-gray">{comment.texto}</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          
-                          <div className="bg-light-gray p-3 rounded-lg">
-                            <p className="text-sm text-dark-gray">{comment.texto}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-
-          {/* Mock Timeline for reference */}
-          {mockTimeline.map((day, dayIndex) => (
-            <div key={day.date}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-px bg-border flex-1"></div>
-                <span className="text-sm font-medium text-dark-gray px-3 py-1 bg-light-gray rounded-full">
-                  {formatDate(day.date)}
-                </span>
-                <div className="h-px bg-border flex-1"></div>
-              </div>
-              
-              <div className="space-y-3">
-                {day.activities.map((activity) => (
-                  <Card key={activity.id} className="shadow-sm">
-                    <CardContent className="p-3">
-                      <div className="flex items-start gap-3">
-                        <div className="bg-wine-red-light p-2 rounded-lg">
-                          {getActivityIcon(activity.type)}
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-medium-gray">
-                              {activity.timestamp}
-                            </span>
-                            {activity.duration && (
-                              <Badge variant="outline" className="text-xs">
-                                {activity.duration}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {activity.type === 'audio' && (
-                            <div className="bg-wine-red-light p-3 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <Button size="sm" className="bg-wine-red hover:bg-wine-red-hover">
-                                  <Play className="h-3 w-3" />
-                                </Button>
-                                <div className="flex-1 h-8 bg-wine-red/20 rounded relative">
-                                  <div className="absolute inset-y-0 left-0 w-1/3 bg-wine-red rounded"></div>
-                                </div>
-                                <span className="text-xs text-wine-red">{activity.duration}</span>
-                              </div>
-                              <p className="text-sm text-dark-gray mt-2">{activity.content}</p>
-                            </div>
-                          )}
-                          
-                          {activity.type === 'text' && (
-                            <div className="bg-light-gray p-3 rounded-lg">
-                              <p className="text-sm text-dark-gray">{activity.content}</p>
-                            </div>
-                          )}
-                          
-                          {activity.type === 'attachment' && (
-                            <div className="bg-light-gray p-3 rounded-lg">
-                              <p className="text-sm text-dark-gray mb-1">{activity.content}</p>
-                              <p className="text-xs text-medium-gray">{activity.filename}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
       </main>
 
       {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-4 space-y-3">
-        {/* Text Input */}
-        <div className="flex gap-2">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-3">
+        <div className="flex items-end gap-2">
+          <Button variant="outline" size="icon" aria-label="Anexar">
+            <Paperclip className="h-5 w-5" />
+          </Button>
+
           <Textarea
-            placeholder="Adicionar observação..."
+            placeholder="Escreva uma mensagem..."
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
-            className="resize-none"
+            className="resize-none min-h-[40px] max-h-32 flex-1"
             rows={1}
           />
-          <Button 
-            className="bg-wine-red hover:bg-wine-red-hover"
-            disabled={!newText.trim() || isAddingComment}
-            onClick={handleAddNote}
-          >
-            {isAddingComment ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-        
-        {/* Recording & Actions */}
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2">
-            <Paperclip className="h-4 w-4" />
-            Anexar
-          </Button>
-          
-          <div className="flex-1 flex justify-center">
-            <Button
-              size="lg"
-              className={`rounded-full w-16 h-16 ${
-                isRecording 
-                  ? "bg-destructive hover:bg-destructive/90" 
-                  : "bg-wine-red hover:bg-wine-red-hover"
-              }`}
-              onClick={startRecording}
+
+          {newText.trim() ? (
+            <Button 
+              className="bg-wine-red hover:bg-wine-red-hover"
+              disabled={isAddingComment}
+              onClick={handleAddNote}
+              aria-label="Enviar mensagem"
             >
-              {isRecording ? (
-                <MicOff className="h-6 w-6" />
+              {isAddingComment ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Mic className="h-6 w-6" />
+                <Send className="h-5 w-5" />
               )}
             </Button>
-          </div>
-          
+          ) : (
+            <Button 
+              className={`rounded-full w-12 h-12 ${isRecording ? "bg-destructive hover:bg-destructive/90" : "bg-wine-red hover:bg-wine-red-hover"}`}
+              onClick={() => (isRecording ? stopRecording() : startRecording())}
+              aria-label={isRecording ? "Parar gravação" : "Iniciar gravação"}
+            >
+              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </Button>
+          )}
         </div>
-        
+
         {isRecording && (
-          <div className="text-center">
+          <div className="text-center mt-2">
             <p className="text-sm text-wine-red font-medium">
               Gravando... {formatTime(recordingTime)}
             </p>

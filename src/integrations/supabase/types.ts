@@ -214,30 +214,44 @@ export type Database = {
       }
       comentarios_projeto: {
         Row: {
+          audio_url: string | null
           created_at: string
           id: string
           projeto_id: string
           texto: string
+          type: string
           updated_at: string
-          usuario_id: string
+          usuario_id: string | null
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           id?: string
           projeto_id: string
           texto: string
+          type?: string
           updated_at?: string
-          usuario_id: string
+          usuario_id?: string | null
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           id?: string
           projeto_id?: string
           texto?: string
+          type?: string
           updated_at?: string
-          usuario_id?: string
+          usuario_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_comentarios_usuario_auth_id"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
+          },
+        ]
       }
       projetos: {
         Row: {
