@@ -18,7 +18,7 @@ export const MobileHome = () => {
   const { user, signOut } = useAuth();
   const { projects, loading } = useProjects();
 
-  const userProjects = projects;
+  const userProjects = projects; // RLS no Supabase já garante que apenas projetos atribuídos ao usuário são retornados.
 
   const getStatusColor = (status: string) => {
     const colors = {
