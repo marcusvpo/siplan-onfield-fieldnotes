@@ -626,4 +626,4 @@ export const Constants = {
       user_type: ["admin", "implantador"],
     },
   },
-} as const
+} as const;
