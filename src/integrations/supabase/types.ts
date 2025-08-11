@@ -1,629 +1,142 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/layout/header";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { useProjects } from "@/hooks/use-projects";
+import { 
+  Calendar, 
+  MapPin, 
+  Clock,
+  ChevronRight
+} from "lucide-react";
 
-export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
+export const MobileHome = () => {
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { projects, loading } = useProjects();
+
+  const userProjects = projects; // RLS no Supabase já garante que apenas projetos atribuídos ao usuário são retornados.
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      "em_andamento": "bg-info text-white",
+      "aguardando": "bg-warning text-white", 
+      "finalizado": "bg-success text-white",
+      "cancelado": "bg-destructive text-white"
+    };
+    return colors[status as keyof typeof colors] || "bg-medium-gray text-white";
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      "em_andamento": "Em Andamento",
+      "aguardando": "Agendado",
+      "finalizado": "Concluído", 
+      "cancelado": "Cancelado"
+    };
+    return labels[status as keyof typeof labels] || status;
+  };
+
+  const handleOpenProject = (projectId: string) => {
+    navigate(`/mobile/project/${projectId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-wine-red border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-medium-gray">Carregando projetos...</p>
+        </div>
+      </div>
+    );
   }
-  public: {
-    Tables: {
-      anexos: {
-        Row: {
-          autor_id: string
-          created_at: string
-          data: string
-          descricao: string | null
-          id: string
-          projeto_id: string
-          tipo: Database["public"]["Enums"]["anexo_type"]
-          updated_at: string
-          url_arquivo: string
-        }
-        Insert: {
-          autor_id: string
-          created_at?: string
-          data?: string
-          descricao?: string | null
-          id?: string
-          projeto_id: string
-          tipo: Database["public"]["Enums"]["anexo_type"]
-          updated_at?: string
-          url_arquivo: string
-        }
-        Update: {
-          autor_id?: string
-          created_at?: string
-          data?: string
-          descricao?: string | null
-          id?: string
-          projeto_id?: string
-          tipo?: Database["public"]["Enums"]["anexo_type"]
-          updated_at?: string
-          url_arquivo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "anexos_autor_id_fkey"
-            columns: ["autor_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anexos_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      atividades_recentes: {
-        Row: {
-          acao: string
-          created_at: string
-          descricao: string | null
-          id: string
-          projeto_id: string | null
-          usuario_id: string | null
-        }
-        Insert: {
-          acao: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          projeto_id?: string | null
-          usuario_id?: string | null
-        }
-        Update: {
-          acao?: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          projeto_id?: string | null
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "atividades_recentes_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atividades_recentes_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      auditoria: {
-        Row: {
-          acao: string
-          data: string
-          detalhes: Json | null
-          id: string
-          projeto_id: string | null
-          usuario_id: string
-        }
-        Insert: {
-          acao: string
-          data?: string
-          detalhes?: Json | null
-          id?: string
-          projeto_id?: string | null
-          usuario_id: string
-        }
-        Update: {
-          acao?: string
-          data?: string
-          detalhes?: Json | null
-          id?: string
-          projeto_id?: string | null
-          usuario_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "auditoria_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "auditoria_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      blocos: {
-        Row: {
-          autor_id: string
-          created_at: string
-          data: string
-          dia: string
-          hash_arquivo: string | null
-          id: string
-          projeto_id: string
-          texto: string | null
-          tipo: Database["public"]["Enums"]["bloco_type"]
-          transcricao: string | null
-          updated_at: string
-          url_arquivo: string | null
-          versao: number
-        }
-        Insert: {
-          autor_id: string
-          created_at?: string
-          data?: string
-          dia?: string
-          hash_arquivo?: string | null
-          id?: string
-          projeto_id: string
-          texto?: string | null
-          tipo: Database["public"]["Enums"]["bloco_type"]
-          transcricao?: string | null
-          updated_at?: string
-          url_arquivo?: string | null
-          versao?: number
-        }
-        Update: {
-          autor_id?: string
-          created_at?: string
-          data?: string
-          dia?: string
-          hash_arquivo?: string | null
-          id?: string
-          projeto_id?: string
-          texto?: string | null
-          tipo?: Database["public"]["Enums"]["bloco_type"]
-          transcricao?: string | null
-          updated_at?: string
-          url_arquivo?: string | null
-          versao?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "blocos_autor_id_fkey"
-            columns: ["autor_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "blocos_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      comentarios_projeto: {
-        Row: {
-          created_at: string
-          id: string
-          projeto_id: string
-          texto: string
-          updated_at: string
-          usuario_id: string | null; -- Ajustado para ser nullable
-          type: "text" | "audio"; -- Adicionada coluna 'type'
-          audio_url: string | null; -- Adicionada coluna 'audio_url'
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          projeto_id: string
-          texto: string
-          updated_at?: string
-          usuario_id?: string | null; -- Ajustado para ser nullable
-          type?: "text" | "audio"; -- Adicionada coluna 'type'
-          audio_url?: string | null; -- Adicionada coluna 'audio_url'
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          projeto_id?: string
-          texto?: string
-          updated_at?: string
-          usuario_id?: string | null; -- Ajustado para ser nullable
-          type?: "text" | "audio"; -- Adicionada coluna 'type'
-          audio_url?: string | null; -- Adicionada coluna 'audio_url'
-        }
-        Relationships: []
-      }
-      projetos: {
-        Row: {
-          chamado: string
-          created_at: string
-          data_fim_implantacao: string
-          data_inicio_implantacao: string
-          email_contato: string
-          estado: string
-          id: string
-          nome_cartorio: string
-          observacao_admin: string | null
-          sistema: string[]
-          status: Database["public"]["Enums"]["project_status"]
-          telefone_contato: string | null
-          updated_at: string
-          usuario_id: string | null
-        }
-        Insert: {
-          chamado: string
-          created_at?: string
-          data_fim_implantacao: string
-          data_inicio_implantacao: string
-          email_contato: string
-          estado: string
-          id?: string
-          nome_cartorio: string
-          observacao_admin?: string | null
-          sistema: string[]
-          status?: Database["public"]["Enums"]["project_status"]
-          telefone_contato?: string | null
-          updated_at?: string
-          usuario_id?: string | null
-        }
-        Update: {
-          chamado?: string
-          created_at?: string
-          data_fim_implantacao?: string
-          data_inicio_implantacao?: string
-          email_contato?: string
-          estado?: string
-          id?: string
-          nome_cartorio?: string
-          observacao_admin?: string | null
-          sistema?: string[]
-          status?: Database["public"]["Enums"]["project_status"]
-          telefone_contato?: string | null
-          updated_at?: string
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "projetos_usuario_id_users_auth_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["auth_id"]
-          },
-        ]
-      }
-      relatorios: {
-        Row: {
-          created_at: string
-          created_by: string
-          data_geracao: string
-          id: string
-          projeto_id: string
-          status: Database["public"]["Enums"]["relatorio_status"]
-          texto: string | null
-          updated_at: string
-          url_docx: string | null
-          url_pdf: string | null
-          url_txt: string | null
-          versao: number
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          data_geracao?: string
-          id?: string
-          projeto_id: string
-          status?: Database["public"]["Enums"]["relatorio_status"]
-          texto?: string | null
-          updated_at?: string
-          url_docx?: string | null
-          url_pdf?: string | null
-          url_txt?: string | null
-          versao?: number
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          data_geracao?: string
-          id?: string
-          projeto_id?: string
-          status?: Database["public"]["Enums"]["relatorio_status"]
-          texto?: string | null
-          updated_at?: string
-          url_docx?: string | null
-          url_pdf?: string | null
-          url_txt?: string | null
-          versao?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "relatorios_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "relatorios_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sistemas: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          id: string
-          nome: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          nome: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          nome?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      status_projeto: {
-        Row: {
-          ativo: boolean
-          cor: string
-          created_at: string
-          id: string
-          nome: string
-          ordem: number
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          cor: string
-          created_at?: string
-          id?: string
-          nome: string
-          ordem: number
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          cor?: string
-          created_at?: string
-          id?: string
-          nome?: string
-          ordem?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      users: {
-        Row: {
-          ativo: boolean
-          auth_id: string | null
-          created_at: string
-          email: string
-          id: string
-          nome: string
-          tipo: Database["public"]["Enums"]["user_type"]
-          updated_at: string
-          username: string | null
-        }
-        Insert: {
-          ativo?: boolean
-          auth_id?: string | null
-          created_at?: string
-          email: string
-          id?: string
-          nome: string
-          tipo?: Database["public"]["Enums"]["user_type"]
-          updated_at?: string
-          username?: string | null
-        }
-        Update: {
-          ativo?: boolean
-          auth_id?: string | null
-          created_at?: string
-          email?: string
-          id?: string
-          nome?: string
-          tipo?: Database["public"]["Enums"]["user_type"]
-          updated_at?: string
-          username?: string | null
-        }
-        Relationships: []
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      authenticate_implantador: {
-        Args: { p_username: string; p_password: string }
-        Returns: {
-          id: string
-          email: string
-          user_metadata: Json
-        }[]
-      }
-      get_current_user_type: {
-        Args: Record<PropertyKey, never>
-        Returns: Database["public"]["Enums"]["user_type"]
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      log_audit: {
-        Args: { p_projeto_id: string; p_acao: string; p_detalhes?: Json }
-        Returns: string
-      }
-      user_owns_project: {
-        Args: { project_id: string }
-        Returns: boolean
-      }
-    }
-    Enums: {
-      anexo_type: "imagem" | "pdf" | "outro"
-      bloco_type: "audio" | "texto"
-      project_status: "aguardando" | "em_andamento" | "finalizado" | "cancelado"
-      relatorio_status: "gerado" | "revisado"
-      sistema_type: "Orion PRO" | "Orion REG" | "Orion TN" | "WebRI"
-      user_type: "admin" | "implantador"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+  return (
+    <div className="min-h-screen bg-background">
+      <Header 
+        userType="implantador" 
+        userName={user?.nome || "Implantador"}
+        onLogout={signOut}
+      />
+      
+      <main className="p-4 space-y-4">
+        <div className="text-center py-6">
+          <h1 className="text-2xl font-bold text-dark-gray mb-2">
+            Bem-vindo, {user?.nome?.split(' ')[0] || 'Implantador'}!
+          </h1>
+          <p className="text-medium-gray">
+            Você tem <span className="font-semibold text-wine-red">{userProjects.length} projetos</span> atribuídos
+          </p>
+        </div>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+        <div className="space-y-4">
+          {userProjects.map((project) => (
+            <Card key={project.id} className="shadow-card hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-mono text-medium-gray">
+                        {project.chamado}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-dark-gray text-lg">
+                      {project.nome_cartorio}
+                    </h3>
+                  </div>
+                  <Badge className={getStatusColor(project.status)}>
+                    {getStatusLabel(project.status)}
+                  </Badge>
+                </div>
 
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-medium-gray">
+                    <MapPin className="h-4 w-4" />
+                    <span>{project.estado}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-medium-gray">
+                    <Calendar className="h-4 w-4" />
+                    <span>Período: {new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} até {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-wine-red" />
+                    <span className="text-wine-red font-medium">{Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema}</span>
+                  </div>
+                </div>
 
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+                <Button 
+                  className="w-full bg-wine-red hover:bg-wine-red-hover gap-2"
+                  size="lg"
+                  onClick={() => handleOpenProject(project.id)}
+                >
+                  Abrir Projeto
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      anexo_type: ["imagem", "pdf", "outro"],
-      bloco_type: ["audio", "texto"],
-      project_status: ["aguardando", "em_andamento", "finalizado", "cancelado"],
-      relatorio_status: ["gerado", "revisado"],
-      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"], // Este ENUM será menos usado diretamente após a mudança para TEXT[]
-      user_type: ["admin", "implantador"],
-    },
-  },
-} as const
+        {userProjects.length === 0 && (
+          <div className="text-center py-12">
+            <div className="bg-light-gray rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <Clock className="h-8 w-8 text-medium-gray" />
+            </div>
+            <h3 className="text-lg font-semibold text-dark-gray mb-2">
+              Nenhum projeto ativo
+            </h3>
+            <p className="text-medium-gray">
+              Aguarde a atribuição de novos projetos
+            </p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
