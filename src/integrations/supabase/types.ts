@@ -214,44 +214,36 @@ export type Database = {
       }
       comentarios_projeto: {
         Row: {
-          audio_url: string | null
           created_at: string
           id: string
           projeto_id: string
           texto: string
-          type: string
           updated_at: string
-          usuario_id: string | null
+          usuario_id: string | null; -- Ajustado para ser nullable
+          type: "text" | "audio"; -- Adicionada coluna 'type'
+          audio_url: string | null; -- Adicionada coluna 'audio_url'
         }
         Insert: {
-          audio_url?: string | null
           created_at?: string
           id?: string
           projeto_id: string
           texto: string
-          type?: string
           updated_at?: string
-          usuario_id?: string | null
+          usuario_id?: string | null; -- Ajustado para ser nullable
+          type?: "text" | "audio"; -- Adicionada coluna 'type'
+          audio_url?: string | null; -- Adicionada coluna 'audio_url'
         }
         Update: {
-          audio_url?: string | null
           created_at?: string
           id?: string
           projeto_id?: string
           texto?: string
-          type?: string
           updated_at?: string
-          usuario_id?: string | null
+          usuario_id?: string | null; -- Ajustado para ser nullable
+          type?: "text" | "audio"; -- Adicionada coluna 'type'
+          audio_url?: string | null; -- Adicionada coluna 'audio_url'
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_comentarios_usuario_auth_id"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["auth_id"]
-          },
-        ]
+        Relationships: []
       }
       projetos: {
         Row: {
@@ -630,7 +622,7 @@ export const Constants = {
       bloco_type: ["audio", "texto"],
       project_status: ["aguardando", "em_andamento", "finalizado", "cancelado"],
       relatorio_status: ["gerado", "revisado"],
-      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"],
+      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"], // Este ENUM será menos usado diretamente após a mudança para TEXT[]
       user_type: ["admin", "implantador"],
     },
   },
