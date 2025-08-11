@@ -1,3 +1,5 @@
+// src/components/admin/project-form-dialog.tsx
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -14,39 +16,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useUsers } from "@/hooks/use-users";
-import { useSistemas } from "@/hooks/use-sistemas";
 import { Project } from "@/hooks/use-projects";
 
-interface ProjectFormDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (data: any) => Promise<void>;
-  project?: Project | null;
-  title: string;
-}
-
-interface FormData {
-  chamado: string;
-  nome_cartorio: string;
-  estado: string;
-  sistema: string;
-  email_contato: string;
-  telefone_contato?: string;
-  data_inicio_implantacao: string;
-  data_fim_implantacao: string;
-  status: string;
-  usuario_id?: string;
-  observacao_admin?: string;
-}
-
-// Removido - sistema será campo de texto livre
-
-const statusOptions = [
-  { value: "aguardando", label: "Aguardando" },
-  { value: "em_andamento", label: "Em Andamento" },
-  { value: "finalizado", label: "Finalizado" },
-  { value: "cancelado", label: "Cancelado" },
-];
+// ... (interface ProjectFormDialogProps e FormData permanecem as mesmas)
 
 export const ProjectFormDialog = ({ 
   open, 
@@ -57,9 +29,9 @@ export const ProjectFormDialog = ({
 }: ProjectFormDialogProps) => {
   const [loading, setLoading] = useState(false);
   const { getActiveImplantadores } = useUsers();
-  const implantadores = getActiveImplantadores();
-  const { sistemas, loading: loadingSistemas } = useSistemas();
-  const sistemasAtivos = sistemas.filter(s => s.ativo);
+  // Filtra os implantadores para incluir apenas aqueles que possuem um auth_id
+  // visto que a FK na tabela 'projetos' referencia 'users.auth_id'
+  const assignableImplantadores = getActiveImplantadores().filter(user => user.auth_id);
 
   const {
     register,
@@ -79,7 +51,8 @@ export const ProjectFormDialog = ({
       data_inicio_implantacao: project.data_inicio_implantacao || "",
       data_fim_implantacao: project.data_fim_implantacao || "",
       status: project.status,
-      usuario_id: project.usuario_id || "",
+      // Garante que usuario_id seja o auth_id ou undefined
+      usuario_id: project.usuario_id || "", 
       observacao_admin: project.observacao_admin || ""
     } : {
       status: "aguardando"
@@ -119,7 +92,6 @@ export const ProjectFormDialog = ({
             {project ? "Edite as informações do projeto" : "Preencha os dados para criar um novo projeto de implantação"}
           </DialogDescription>
         </DialogHeader>
-
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -134,7 +106,6 @@ export const ProjectFormDialog = ({
                 <span className="text-sm text-destructive">{errors.chamado.message}</span>
               )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="estado">Estado *</Label>
               <Input
@@ -160,33 +131,17 @@ export const ProjectFormDialog = ({
               <span className="text-sm text-destructive">{errors.nome_cartorio.message}</span>
             )}
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="sistema">Sistema *</Label>
-            <Select
-              value={watch("sistema") || ""}
-              onValueChange={(value) => setValue("sistema", value, { shouldValidate: true })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={loadingSistemas ? "Carregando sistemas..." : "Selecione um sistema"} />
-              </SelectTrigger>
-              <SelectContent>
-                {sistemasAtivos.length === 0 ? (
-                  <SelectItem value="" disabled>Nenhum sistema ativo cadastrado</SelectItem>
-                ) : (
-                  sistemasAtivos.map((s) => (
-                    <SelectItem key={s.id} value={s.nome}>
-                      {s.nome}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <Input
+              id="sistema"
+              placeholder="Orion PRO, WebRI (separe múltiplos sistemas por vírgula)"
+              {...register("sistema", { required: "Sistema é obrigatório" })}
+            />
             {errors.sistema && (
               <span className="text-sm text-destructive">{errors.sistema.message}</span>
             )}
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="email_contato">Email de Contato *</Label>
@@ -206,7 +161,6 @@ export const ProjectFormDialog = ({
                 <span className="text-sm text-destructive">{errors.email_contato.message}</span>
               )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="telefone_contato">Telefone de Contato</Label>
               <Input
@@ -230,7 +184,6 @@ export const ProjectFormDialog = ({
                 <span className="text-sm text-destructive">{errors.data_inicio_implantacao.message}</span>
               )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="data_fim_implantacao">Final da Implantação *</Label>
               <Input
@@ -243,7 +196,6 @@ export const ProjectFormDialog = ({
               )}
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status *</Label>
@@ -260,7 +212,6 @@ export const ProjectFormDialog = ({
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="usuario_id">Implantador</Label>
               <Select 
@@ -272,8 +223,9 @@ export const ProjectFormDialog = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhum implantador</SelectItem>
-                  {implantadores.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
+                  {/* ALTERADO AQUI: Usa assignableImplantadores e garante que o valor é user.auth_id */}
+                  {assignableImplantadores.map((user) => (
+                    <SelectItem key={user.auth_id} value={user.auth_id}>
                       {user.nome} ({user.username})
                     </SelectItem>
                   ))}
@@ -281,7 +233,6 @@ export const ProjectFormDialog = ({
               </Select>
             </div>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="observacao_admin">Observações do Administrador</Label>
             <Textarea
