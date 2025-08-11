@@ -122,7 +122,7 @@ export const useProjects = () => {
         .insert(insertData as any)
         .select(`
           *,
-          user:users!inner(nome, username)
+          user:users!projetos_usuario_id_users_auth_id_fkey(nome, username)
         `)
         .single();
 
