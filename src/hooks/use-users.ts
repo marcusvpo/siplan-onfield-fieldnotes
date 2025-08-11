@@ -1,19 +1,24 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from '@/integrations/supabase/types'; // Importar Database type
+
+// Definir o tipo de usuário do banco de dados para evitar conflitos de tipagem
+type UserRow = Database['public']['Tables']['users']['Row'];
+type UserInsert = Database['public']['Tables']['users']['Insert'];
+type UserUpdate = Database['public']['Tables']['users']['Update'];
 
 export interface User {
   id: string;
   nome: string;
   email: string;
   username?: string;
-  tipo: 'admin' | 'implantador';
+  tipo: UserRow['tipo']; // Usa o tipo corrigido diretamente do Database
   ativo: boolean;
   auth_id?: string;
   created_at: string;
   updated_at: string;
 }
-
 export const useUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +34,13 @@ export const useUsers = () => {
 
       if (error) throw error;
 
-      setUsers(data || []);
+      // O map é necessário para garantir que o tipo 'tipo' esteja correto
+      const fetchedUsers: User[] = data.map(u => ({
+        ...u,
+        tipo: u.tipo as UserRow['tipo'], // Cast do tipo de enum
+      })) as User[];
+
+      setUsers(fetchedUsers || []);
     } catch (error: any) {
       console.error('Erro ao carregar usuários:', error);
       toast({
@@ -63,6 +74,8 @@ export const useUsers = () => {
         description: `O implantador ${userData.nome} foi criado.`
       });
 
+      // O retorno do invoke pode não ser tipado automaticamente como User,
+      // então retornamos um tipo genérico ou null
       return { data, error: null };
     } catch (error: any) {
       console.error('Erro ao criar usuário:', error);
@@ -77,9 +90,21 @@ export const useUsers = () => {
 
   const updateUser = async (id: string, updates: Partial<User>) => {
     try {
+      // Cria um objeto com apenas as propriedades do tipo UserUpdate
+      const updatePayload: UserUpdate = {
+        ativo: updates.ativo,
+        nome: updates.nome,
+        email: updates.email,
+        username: updates.username,
+        tipo: updates.tipo, // 'tipo' é corretamente inferido agora
+        auth_id: updates.auth_id,
+        created_at: updates.created_at,
+        updated_at: updates.updated_at,
+      };
+
       const { data, error } = await supabase
         .from('users')
-        .update(updates)
+        .update(updatePayload) // Usa o payload tipado
         .eq('id', id)
         .select()
         .single();

@@ -257,7 +257,8 @@ export type Database = {
           nome_cartorio: string,
           observacao_admin: string | null,
           sistema: string[],
-          status: Database["public"]["Enums"]["project_status"],
+          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
+          status: Database["public"]["Enums"]["project_status"][number], 
           telefone_contato: string | null,
           updated_at: string,
           usuario_id: string | null,
@@ -273,7 +274,8 @@ export type Database = {
           nome_cartorio: string,
           observacao_admin?: string | null,
           sistema: string[],
-          status?: Database["public"]["Enums"]["project_status"],
+          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
+          status?: Database["public"]["Enums"]["project_status"][number], 
           telefone_contato?: string | null,
           updated_at?: string,
           usuario_id?: string | null,
@@ -289,7 +291,8 @@ export type Database = {
           nome_cartorio?: string,
           observacao_admin?: string | null,
           sistema?: string[],
-          status?: Database["public"]["Enums"]["project_status"],
+          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
+          status?: Database["public"]["Enums"]["project_status"][number], 
           telefone_contato?: string | null,
           updated_at?: string,
           usuario_id?: string | null,
@@ -426,7 +429,8 @@ export type Database = {
           email: string,
           id: string,
           nome: string,
-          tipo: Database["public"]["Enums"]["user_type"],
+          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
+          tipo: Database["public"]["Enums"]["user_type"][number], 
           updated_at: string,
           username: string | null,
         },
@@ -437,7 +441,8 @@ export type Database = {
           email: string,
           id?: string,
           nome: string,
-          tipo?: Database["public"]["Enums"]["user_type"],
+          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
+          tipo?: Database["public"]["Enums"]["user_type"][number], 
           updated_at?: string,
           username?: string | null,
         },
@@ -448,7 +453,8 @@ export type Database = {
           email?: string,
           id?: string,
           nome?: string,
-          tipo?: Database["public"]["Enums"]["user_type"],
+          // CORRIGIDO AQUI: Usa [number] para o tipo de enum
+          tipo?: Database["public"]["Enums"]["user_type"][number], 
           updated_at?: string,
           username?: string | null,
         },
@@ -489,7 +495,7 @@ export type Database = {
       bloco_type: ["audio", "texto"],
       project_status: ["aguardando", "em_andamento", "finalizado", "cancelado"],
       relatorio_status: ["gerado", "revisado"],
-      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"], // Este ENUM será menos usado diretamente após a mudança para TEXT[]
+      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"],
       user_type: ["admin", "implantador"],
     },
     CompositeTypes: {
@@ -601,7 +607,7 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: key: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -622,7 +628,7 @@ export const Constants = {
       bloco_type: ["audio", "texto"],
       project_status: ["aguardando", "em_andamento", "finalizado", "cancelado"],
       relatorio_status: ["gerado", "revisado"],
-      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"], // Este ENUM será menos usado diretamente após a mudança para TEXT[]
+      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"],
       user_type: ["admin", "implantador"],
     },
   },

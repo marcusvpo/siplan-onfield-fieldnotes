@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Database } from "@/integrations/supabase/types"; // Importar Database type
+import { Database } from "@/integrations/supabase/types";
+
+// Tipo para as linhas de projeto do banco de dados
+type ProjectRow = Database['public']['Tables']['projetos']['Row'];
+type ProjectInsert = Database['public']['Tables']['projetos']['Insert'];
+type ProjectUpdate = Database['public']['Tables']['projetos']['Update'];
 
 export interface Project {
   id: string;
@@ -13,8 +18,7 @@ export interface Project {
   telefone_contato?: string;
   data_inicio_implantacao: string;
   data_fim_implantacao: string;
-  // Tipo union explícito para status
-  status: "aguardando" | "em_andamento" | "finalizado" | "cancelado"; 
+  status: ProjectRow['status']; // Usa o tipo corrigido diretamente do Database
   observacao_admin?: string;
   usuario_id?: string;
   created_at: string;
@@ -53,18 +57,15 @@ export const useProjects = () => {
         .select(`
           *,
           user:users!projetos_usuario_id_users_auth_id_fkey(nome, username, auth_id)
-        `)
-        .order('created_at', { ascending: false });
+        `);
 
       if (error) throw error;
 
-      // Transform data to ensure user is a single object, not array
+      // O map ainda é necessário para formatar o `user` de `user[]` para `user` e garantir a tipagem `Project`
       const projectsData = data?.map(project => ({
         ...project,
-        // Cast do status para o tipo union esperado
-        status: project.status as Project['status'],
         user: Array.isArray(project.user) ? project.user[0] : project.user
-      })) as Project[];
+      })) as Project[]; // O cast final é mais seguro aqui
       
       setProjects(projectsData || []);
 
@@ -100,14 +101,14 @@ export const useProjects = () => {
     sistema: string[];
     email_contato: string;
     telefone_contato?: string;
+    status: ProjectRow['status']; // Usa o tipo corrigido
     data_inicio_implantacao: string;
     data_fim_implantacao: string;
-    status: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
     observacao_admin?: string;
     usuario_id?: string;
   }) => {
     try {
-      const insertData = {
+      const insertData: ProjectInsert = { // Usa o tipo de Insert do Database
         chamado: projectData.chamado,
         nome_cartorio: projectData.nome_cartorio,
         estado: projectData.estado,
@@ -123,7 +124,7 @@ export const useProjects = () => {
       
       const { data, error } = await supabase
         .from('projetos')
-        .insert(insertData as Database['public']['Tables']['projetos']['Insert']) // Cast para o tipo de insert do Supabase
+        .insert(insertData)
         .select(`
           *,
           user:users!projetos_usuario_id_users_auth_id_fkey(nome, username)
@@ -132,10 +133,8 @@ export const useProjects = () => {
 
       if (error) throw error;
 
-      // Transform data to ensure user is a single object, not array
-      const newProject: Project = { // Cast para Project
+      const newProject: Project = { // Tipo Project
         ...data,
-        status: data.status as Project['status'], // Cast do status
         user: Array.isArray(data.user) ? data.user[0] : data.user
       };
       
@@ -168,14 +167,28 @@ export const useProjects = () => {
     telefone_contato?: string;
     data_inicio_implantacao?: string;
     data_fim_implantacao?: string;
-    status?: "aguardando" | "em_andamento" | "finalizado" | "cancelado";
+    status?: ProjectRow['status']; // Usa o tipo corrigido
     observacao_admin?: string;
     usuario_id?: string;
   }) => {
     try {
+      const updateData: ProjectUpdate = { // Usa o tipo de Update do Database
+        chamado: updates.chamado,
+        nome_cartorio: updates.nome_cartorio,
+        estado: updates.estado,
+        sistema: updates.sistema,
+        email_contato: updates.email_contato,
+        telefone_contato: updates.telefone_contato,
+        data_inicio_implantacao: updates.data_inicio_implantacao,
+        data_fim_implantacao: updates.data_fim_implantacao,
+        status: updates.status,
+        observacao_admin: updates.observacao_admin,
+        usuario_id: updates.usuario_id
+      };
+
       const { data, error } = await supabase
         .from('projetos')
-        .update(updates as Database['public']['Tables']['projetos']['Update']) // Cast para o tipo de update do Supabase
+        .update(updateData)
         .eq('id', id)
         .select(`
           *,
@@ -185,10 +198,8 @@ export const useProjects = () => {
 
       if (error) throw error;
 
-      // Transform data to ensure user is a single object, not array
-      const updatedProject: Project = { // Cast para Project
+      const updatedProject: Project = { // Tipo Project
         ...data,
-        status: data.status as Project['status'], // Cast do status
         user: Array.isArray(data.user) ? data.user[0] : data.user
       };
       
@@ -244,9 +255,6 @@ export const useProjects = () => {
   };
 
   const getProjectsByUser = (authId: string) => {
-    // RLS no Supabase já garante que 'projects' conterá apenas projetos do usuário logado,
-    // então a filtragem por authId aqui se torna redundante na maioria dos casos, mas pode ser útil para segurança extra.
-    // Garanta que o tipo de 'tipo' de usuário esteja correto no useUsers para que 'user.auth_id' seja acessível.
     return projects.filter(p => p.usuario_id === authId);
   };
 

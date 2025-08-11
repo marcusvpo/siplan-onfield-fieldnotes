@@ -1,11 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Database } from "@/integrations/supabase/types"; // Importar Database type
+import { Database } from "@/integrations/supabase/types";
 
 // Definir a URL do webhook do n8n aqui
 // IMPORTANTE: Em produção, isto deve ser uma variável de ambiente (process.env.N8N_TRANSCRIBE_WEBHOOK_URL)
 const N8N_TRANSCRIBE_WEBHOOK_URL = "SUA_URL_DO_WEBHOOK_AQUI"; // Substitua pela sua URL real
+
+// Definir o tipo da linha de usuário do banco de dados
+type UserRow = Database['public']['Tables']['users']['Row'];
+type ComentarioRow = Database['public']['Tables']['comentarios_projeto']['Row'];
+type ComentarioInsert = Database['public']['Tables']['comentarios_projeto']['Insert'];
 
 export interface ProjectComment {
   id: string;
@@ -16,16 +21,16 @@ export interface ProjectComment {
   updated_at: string;
   type: "text" | "audio";
   audio_url: string | null;
-  user: { // user não é opcional, mas pode ser null (por isso o tipo union)
+  user: { // user pode ser null se o usuario_id for null ou o join não encontrar
     nome: string;
-    tipo: "admin" | "implantador"; // Tipo union explícito
-  } | null; // Pode ser null se usuario_id for null ou a relação não for encontrada
+    tipo: UserRow['tipo']; // Usa o tipo corrigido de 'tipo'
+  } | null;
 }
 
 export const useProjectComments = (projectId?: string) => {
   const [comments, setComments] = useState<ProjectComment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({}); // Guarda URLs assinadas dos áudios
+  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const loadComments = async () => {
@@ -36,7 +41,6 @@ export const useProjectComments = (projectId?: string) => {
 
     try {
       setLoading(true);
-      // Ajuste para pegar 'user' e 'tipo' corretamente, tratando nulls
       const { data, error } = await supabase
         .from('comentarios_projeto')
         .select(`
@@ -48,16 +52,14 @@ export const useProjectComments = (projectId?: string) => {
 
       if (error) throw error;
 
-      // Mapeia os dados para garantir a tipagem correta de `user` e `tipo`
-      const fetchedComments: ProjectComment[] = data.map(comment => ({
+      const fetchedComments: ProjectComment[] = data.map((comment: ComentarioRow & { user: UserRow | null }) => ({ // Cast explícito aqui
         ...comment,
-        // Garante que 'user' é null se a relação falhou ou usuario_id é null
         user: comment.user ? {
           nome: comment.user.nome,
-          tipo: (comment.user.tipo as "admin" | "implantador"), // Cast do tipo
+          tipo: comment.user.tipo, // 'tipo' agora é inferido corretamente
         } : null,
-        type: comment.type as "text" | "audio", // Cast do tipo
-      })) as ProjectComment[]; // Cast final para garantir o array de ProjectComment
+        type: comment.type as "text" | "audio", // Garantir o tipo correto para 'type'
+      }));
 
       setComments(fetchedComments);
 
@@ -68,7 +70,7 @@ export const useProjectComments = (projectId?: string) => {
         if (comment.audio_url) {
           const { data: signedUrlData, error: signedUrlError } = await supabase.storage
             .from('project_files')
-            .createSignedUrl(comment.audio_url, 60 * 60); // URL válida por 1 hora
+            .createSignedUrl(comment.audio_url, 60 * 60);
 
           if (!signedUrlError && signedUrlData?.signedUrl) {
             newAudioUrls[comment.id] = signedUrlData.signedUrl;
@@ -101,15 +103,17 @@ export const useProjectComments = (projectId?: string) => {
         throw new Error("Usuário não autenticado.");
       }
 
+      const insertData: ComentarioInsert = {
+        projeto_id: projectId,
+        usuario_id: authUser.id,
+        texto: texto.trim(),
+        type: 'text',
+        audio_url: null
+      };
+
       const { data, error } = await supabase
         .from('comentarios_projeto')
-        .insert([{ 
-          projeto_id: projectId,
-          usuario_id: authUser.id,
-          texto: texto.trim(),
-          type: 'text', // Tipo de comentário: texto
-          audio_url: null // Nulo para comentários de texto
-        }])
+        .insert([insertData])
         .select(`
           *,
           user:users!fk_comentarios_usuario_auth_id(nome, tipo)
@@ -118,14 +122,13 @@ export const useProjectComments = (projectId?: string) => {
 
       if (error) throw error;
 
-      // Mapeia o dado retornado para garantir a tipagem correta de `user` e `tipo`
-      const newComment: ProjectComment = {
+      const newComment: ProjectComment = { // Tipo ProjectComment
         ...data,
         user: data.user ? {
           nome: data.user.nome,
-          tipo: (data.user.tipo as "admin" | "implantador"), // Cast do tipo
+          tipo: data.user.tipo, // 'tipo' é inferido corretamente
         } : null,
-        type: data.type as "text" | "audio", // Cast do tipo
+        type: data.type as "text" | "audio",
       };
 
       setComments(prev => [...prev, newComment]);
@@ -156,28 +159,26 @@ export const useProjectComments = (projectId?: string) => {
 
       const filePath = `projetos/${projectId}/audios/${Date.now()}_${authUser.id}.webm`;
 
-      // Upload do áudio para o Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('project_files')
         .upload(filePath, audioBlob, {
           contentType: 'audio/webm',
-          upsert: false, // Não sobrescrever arquivos existentes
+          upsert: false,
         });
 
       if (uploadError) throw uploadError;
 
-      // Inserir o comentário na tabela comentarios_projeto
+      const insertData: ComentarioInsert = {
+        projeto_id: projectId,
+        usuario_id: authUser.id,
+        type: 'audio',
+        audio_url: filePath,
+        texto: 'Transcrição pendente...'
+      };
+
       const { data, error } = await supabase
         .from('comentarios_projeto')
-        .insert([
-          {
-            projeto_id: projectId,
-            usuario_id: authUser.id,
-            type: 'audio', // Tipo de comentário: áudio
-            audio_url: filePath, // Armazena o path relativo do Storage
-            texto: 'Transcrição pendente...' // Texto inicial para transcrição futura
-          }
-        ])
+        .insert([insertData])
         .select(`
           *,
           user:users!fk_comentarios_usuario_auth_id(nome, tipo)
@@ -186,38 +187,34 @@ export const useProjectComments = (projectId?: string) => {
 
       if (error) throw error;
 
-      // Adiciona a URL assinada ao estado para reprodução imediata
       const { data: signedUrlData } = await supabase.storage
         .from('project_files')
-        .createSignedUrl(filePath, 60 * 60); // 1 hora de validade
+        .createSignedUrl(filePath, 60 * 60);
       
       if (signedUrlData?.signedUrl) {
         setAudioUrls(prev => ({ ...prev, [data.id]: signedUrlData.signedUrl }));
       }
 
-      // Mapeia o dado retornado para garantir a tipagem correta de `user` e `tipo`
-      const newComment: ProjectComment = {
+      const newComment: ProjectComment = { // Tipo ProjectComment
         ...data,
         user: data.user ? {
           nome: data.user.nome,
-          tipo: (data.user.tipo as "admin" | "implantador"), // Cast do tipo
+          tipo: data.user.tipo, // 'tipo' é inferido corretamente
         } : null,
-        type: data.type as "text" | "audio", // Cast do tipo
+        type: data.type as "text" | "audio",
       };
 
-      // Dispara webhook do n8n para transcrição (se configurado)
       if (N8N_TRANSCRIBE_WEBHOOK_URL) {
         try {
-          // Garante que a URL passada para o webhook seja a assinada para acesso externo
           await fetch(N8N_TRANSCRIBE_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              comentario_id: (newComment)?.id, // ID do comentário recém-criado
+              comentario_id: newComment.id,
               project_id: projectId,
               user_auth_id: authUser.id,
-              audio_url: signedUrlData?.signedUrl ?? null, // URL assinada
-              audio_path: filePath // Caminho interno no Storage
+              audio_url: signedUrlData?.signedUrl ?? null,
+              audio_path: filePath
             })
           });
         } catch (err) {

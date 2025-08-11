@@ -2,12 +2,16 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from '@/integrations/supabase/types'; // Importar Database type
+
+// Definir o tipo de usuário do banco de dados para evitar conflitos de tipagem
+type UserRow = Database['public']['Tables']['users']['Row'];
 
 export interface AuthUser {
   id: string;
   email?: string;
   username?: string;
-  tipo: "admin" | "implantador"; // Tipo union explícito
+  tipo: "admin" | "implantador";
   nome?: string;
 }
 
@@ -113,11 +117,11 @@ export const useAuth = () => {
       if (error) {
         console.error('[AUTH] Erro ao buscar usuário na tabela users:', error);
         // Se houve erro na consulta, use metadata como fallback
-        const fallbackUser: AuthUser = { // Cast aqui
+        const fallbackUser: AuthUser = {
           id: authUser.id,
           email: authUser.email,
           username: authUser.user_metadata?.username,
-          tipo: (authUser.user_metadata?.tipo || "implantador") as "admin" | "implantador", // Cast tipo
+          tipo: authUser.user_metadata?.tipo as "admin" | "implantador", // Agora tipo deve vir corretamente
           nome: authUser.user_metadata?.nome || authUser.email
         };
         console.log('[AUTH] Usando dados do metadata como fallback:', fallbackUser);
@@ -128,11 +132,11 @@ export const useAuth = () => {
 
       if (userData) {
         // Use database data as source of truth
-        const dbUser: AuthUser = { // Cast aqui
+        const dbUser: AuthUser = {
           id: authUser.id,
           email: userData.email, // Use email from database for consistency
           username: userData.username,
-          tipo: userData.tipo as "admin" | "implantador", // Cast tipo
+          tipo: userData.tipo, // 'tipo' agora deve ser inferido corretamente como string literal union
           nome: userData.nome
         };
         console.log('[AUTH] Usuário carregado do banco:', dbUser);
@@ -189,8 +193,7 @@ export const useAuth = () => {
         throw new Error("Erro ao verificar permissões de administrador.");
       }
 
-      // Comparação com o tipo explícito
-      if (!userData || (userData.tipo as "admin" | "implantador") !== "admin" || !userData.ativo) {
+      if (!userData || userData.tipo !== "admin" || !userData.ativo) { // `userData.tipo` agora é string literal
         console.log('[AUTH] Usuário não é admin ou está inativo:', userData);
         await supabase.auth.signOut();
         throw new Error("Acesso negado. Credenciais de administrador necessárias.");
@@ -220,7 +223,7 @@ export const useAuth = () => {
           ativo
         `)
         .eq('username', username)
-        .eq('tipo', 'implantador') // Comparação com string literal
+        .eq('tipo', 'implantador' as UserRow['tipo']) // Cast para garantir compatibilidade com o tipo da coluna
         .eq('ativo', true)
         .single();
 
@@ -251,8 +254,8 @@ export const useAuth = () => {
       }
 
       // Verify user is not admin
-      // Comparação com o tipo explícito
-      if ((data.user?.user_metadata?.tipo as "admin" | "implantador") === "admin") {
+      // user_metadata?.tipo deve ser tratado como 'any' ou string e então castado
+      if (data.user?.user_metadata?.tipo === "admin") {
         console.log('[AUTH] Usuário é admin, redirecionando para acesso administrativo');
         await supabase.auth.signOut();
         throw new Error("Use o acesso administrativo para esta conta.");
