@@ -41,24 +41,25 @@ export const useProjectComments = (projectId?: string) => {
 
     try {
       setLoading(true);
+      // O Supabase retorna `null` para relações não encontradas. Precisamos garantir a tipagem.
       const { data, error } = await supabase
         .from('comentarios_projeto')
         .select(`
           *,
           user:users!fk_comentarios_usuario_auth_id(nome, tipo)
-        `)
-        .eq('projeto_id', projectId)
-        .order('created_at', { ascending: true });
+        `);
 
       if (error) throw error;
 
-      const fetchedComments: ProjectComment[] = data.map((comment: ComentarioRow & { user: UserRow | null }) => ({ // Cast explícito aqui
+      // Realiza um cast mais forte para `any` na data, e depois mapeia para o tipo correto.
+      // Isso contorna a dificuldade do TS em tipar a resposta aninhada do Supabase em tempo de compilação.
+      const fetchedComments: ProjectComment[] = (data as any[]).map((comment: any) => ({
         ...comment,
         user: comment.user ? {
           nome: comment.user.nome,
-          tipo: comment.user.tipo, // 'tipo' agora é inferido corretamente
+          tipo: comment.user.tipo,
         } : null,
-        type: comment.type as "text" | "audio", // Garantir o tipo correto para 'type'
+        type: comment.type as "text" | "audio",
       }));
 
       setComments(fetchedComments);
@@ -70,7 +71,7 @@ export const useProjectComments = (projectId?: string) => {
         if (comment.audio_url) {
           const { data: signedUrlData, error: signedUrlError } = await supabase.storage
             .from('project_files')
-            .createSignedUrl(comment.audio_url, 60 * 60);
+            .createSignedUrl(comment.audio_url, 60 * 60); // URL válida por 1 hora
 
           if (!signedUrlError && signedUrlData?.signedUrl) {
             newAudioUrls[comment.id] = signedUrlData.signedUrl;
@@ -122,11 +123,12 @@ export const useProjectComments = (projectId?: string) => {
 
       if (error) throw error;
 
-      const newComment: ProjectComment = { // Tipo ProjectComment
-        ...data,
-        user: data.user ? {
-          nome: data.user.nome,
-          tipo: data.user.tipo, // 'tipo' é inferido corretamente
+      // Realiza um cast mais forte para `any` na data, e depois mapeia para o tipo correto.
+      const newComment: ProjectComment = {
+        ...data as any, // Cast a data como any antes de remapear
+        user: (data as any).user ? {
+          nome: (data as any).user.nome,
+          tipo: (data as any).user.tipo,
         } : null,
         type: data.type as "text" | "audio",
       };
@@ -189,17 +191,18 @@ export const useProjectComments = (projectId?: string) => {
 
       const { data: signedUrlData } = await supabase.storage
         .from('project_files')
-        .createSignedUrl(filePath, 60 * 60);
+        .createSignedUrl(filePath, 60 * 60); // 1 hora de validade
       
       if (signedUrlData?.signedUrl) {
         setAudioUrls(prev => ({ ...prev, [data.id]: signedUrlData.signedUrl }));
       }
 
-      const newComment: ProjectComment = { // Tipo ProjectComment
-        ...data,
-        user: data.user ? {
-          nome: data.user.nome,
-          tipo: data.user.tipo, // 'tipo' é inferido corretamente
+      // Realiza um cast mais forte para `any` na data, e depois mapeia para o tipo correto.
+      const newComment: ProjectComment = {
+        ...data as any, // Cast a data como any antes de remapear
+        user: (data as any).user ? {
+          nome: (data as any).user.nome,
+          tipo: (data as any).user.tipo,
         } : null,
         type: data.type as "text" | "audio",
       };
