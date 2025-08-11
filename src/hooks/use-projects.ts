@@ -238,7 +238,7 @@ export const useProjects = () => {
   };
 
   const getProjectsByUser = (authId: string) => {
-    return projects.filter(p => p.usuario_id === authId);
+    return projects.filter(p => (p as any).user?.auth_id === authId || p.usuario_id === authId);
   };
 
   useEffect(() => {

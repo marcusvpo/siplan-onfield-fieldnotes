@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useUsers } from "@/hooks/use-users";
+import { useSistemas } from "@/hooks/use-sistemas";
 import { Project } from "@/hooks/use-projects";
 
 interface ProjectFormDialogProps {
@@ -57,6 +58,8 @@ export const ProjectFormDialog = ({
   const [loading, setLoading] = useState(false);
   const { getActiveImplantadores } = useUsers();
   const implantadores = getActiveImplantadores();
+  const { sistemas, loading: loadingSistemas } = useSistemas();
+  const sistemasAtivos = sistemas.filter(s => s.ativo);
 
   const {
     register,
@@ -160,11 +163,25 @@ export const ProjectFormDialog = ({
 
           <div className="space-y-2">
             <Label htmlFor="sistema">Sistema *</Label>
-            <Input
-              id="sistema"
-              placeholder="Orion PRO, WebRI (separe múltiplos sistemas por vírgula)"
-              {...register("sistema", { required: "Sistema é obrigatório" })}
-            />
+            <Select
+              value={watch("sistema") || ""}
+              onValueChange={(value) => setValue("sistema", value, { shouldValidate: true })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loadingSistemas ? "Carregando sistemas..." : "Selecione um sistema"} />
+              </SelectTrigger>
+              <SelectContent>
+                {sistemasAtivos.length === 0 ? (
+                  <SelectItem value="" disabled>Nenhum sistema ativo cadastrado</SelectItem>
+                ) : (
+                  sistemasAtivos.map((s) => (
+                    <SelectItem key={s.id} value={s.nome}>
+                      {s.nome}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
             {errors.sistema && (
               <span className="text-sm text-destructive">{errors.sistema.message}</span>
             )}
@@ -256,7 +273,7 @@ export const ProjectFormDialog = ({
                 <SelectContent>
                   <SelectItem value="none">Nenhum implantador</SelectItem>
                   {implantadores.map((user) => (
-                    <SelectItem key={user.auth_id} value={user.auth_id || user.id}>
+                    <SelectItem key={user.id} value={user.id}>
                       {user.nome} ({user.username})
                     </SelectItem>
                   ))}

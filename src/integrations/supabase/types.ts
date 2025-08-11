@@ -250,7 +250,7 @@ export type Database = {
           id: string
           nome_cartorio: string
           observacao_admin: string | null
-          sistema: Database["public"]["Enums"]["sistema_type"]
+          sistema: string
           status: Database["public"]["Enums"]["project_status"]
           telefone_contato: string | null
           updated_at: string
@@ -266,7 +266,7 @@ export type Database = {
           id?: string
           nome_cartorio: string
           observacao_admin?: string | null
-          sistema: Database["public"]["Enums"]["sistema_type"]
+          sistema: string
           status?: Database["public"]["Enums"]["project_status"]
           telefone_contato?: string | null
           updated_at?: string
@@ -282,20 +282,13 @@ export type Database = {
           id?: string
           nome_cartorio?: string
           observacao_admin?: string | null
-          sistema?: Database["public"]["Enums"]["sistema_type"]
+          sistema?: string
           status?: Database["public"]["Enums"]["project_status"]
           telefone_contato?: string | null
           updated_at?: string
           usuario_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_projetos_usuario_id"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["auth_id"]
-          },
           {
             foreignKeyName: "projetos_usuario_id_users_auth_id_fkey"
             columns: ["usuario_id"]
