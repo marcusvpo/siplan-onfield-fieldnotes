@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Mantido para Status Update
 import { useAuth } from "@/hooks/use-auth";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectComments } from "@/hooks/use-project-comments";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { 
   Mic, 
@@ -27,26 +26,32 @@ import {
   ChevronDown
 } from "lucide-react";
 
-
+// Removendo mockTimeline e getActivityIcon, pois agora usaremos dados reais e ícones do tipo
+// const mockTimeline = [...]; // REMOVIDO
 
 export const MobileProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { projects, loading } = useProjects();
-  const { comments, loading: commentsLoading, addComment, addAudioComment } = useProjectComments(id);
+  const { projects, loading, updateProject } = useProjects(); // Adicionado updateProject para status
+  const { 
+    comments, 
+    loading: commentsLoading, 
+    addComment, 
+    addAudioComment, // <--- EXPORTADO DO HOOK
+    audioUrls // <--- EXPORTADO DO HOOK para URLs de áudio
+  } = useProjectComments(id);
   const { toast } = useToast();
   
-  const [isRecording, setIsRecording] = useState(false);
   const [newText, setNewText] = useState("");
-  const [recordingTime, setRecordingTime] = useState(0);
-  
-  const [isAddingComment, setIsAddingComment] = useState(false);
+  const [isAddingComment, setIsAddingComment] = useState(false); // Para texto e áudio
+  const [detailsOpen, setDetailsOpen] = useState(false); // Para o collapsible de detalhes do projeto
 
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Estados para gravação de áudio
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
-  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const project = projects.find(p => p.id === id);
 
@@ -61,92 +66,74 @@ export const MobileProjectDetail = () => {
     }
   }, [project, loading, navigate, toast]);
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-
-      const chunks: Blob[] = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstart = () => {
-        setIsRecording(true);
-        setRecordingTime(0);
-      };
-
-      mediaRecorder.onstop = async () => {
-        setIsRecording(false);
-        setRecordingTime(0);
-
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setIsAddingComment(true);
-        await addAudioComment(blob);
-        setIsAddingComment(false);
-
-        // Encerrar tracks
-        stream.getTracks().forEach(t => t.stop());
-      };
-
-      mediaRecorder.start();
-
-      // Atualiza cronômetro durante a gravação
-      const timer = setInterval(() => {
-        setRecordingTime(prev => {
-          if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
-            clearInterval(timer);
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } catch (error: any) {
-      toast({
-        title: "Erro ao acessar microfone",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-
-  const stopRecording = () => {
-    const mr = mediaRecorderRef.current;
-    if (mr && mr.state === 'recording') {
-      mr.stop();
-    }
-  };
-
+  // Função para formatar tempo (usado no cronômetro de gravação e duração do áudio)
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long',
-      year: 'numeric'
-    });
-  };
+  // Função para agrupar comentários por dia
+  const groupedComments = comments.reduce((acc: Record<string, typeof comments>, comment) => {
+    const dateKey = new Date(comment.created_at).toISOString().split('T')[0];
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(comment);
+    return acc;
+  }, {});
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'audio': return <Mic className="h-4 w-4" />;
-      case 'text': return <FileText className="h-4 w-4" />;
-      case 'attachment': return <ImageIcon className="h-4 w-4" />;
-      default: return null;
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      audioChunksRef.current = []; // Limpa chunks anteriores
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setIsAddingComment(true);
+        await addAudioComment(audioBlob); // Chama a função do hook
+        setIsAddingComment(false);
+        stream.getTracks().forEach(track => track.stop()); // Encerra o microfone
+      };
+
+      mediaRecorderRef.current.onstart = () => {
+        setIsRecording(true);
+        setRecordingTime(0);
+        // Inicia o cronômetro visual
+        const timer = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+          if (mediaRecorderRef.current?.state === 'inactive') {
+            clearInterval(timer);
+          }
+        }, 1000);
+      };
+
+      mediaRecorderRef.current.start();
+    } catch (error: any) {
+      console.error('Erro ao acessar microfone:', error);
+      toast({
+        title: "Erro ao acessar microfone",
+        description: error.message || "Verifique as permissões do microfone.",
+        variant: "destructive"
+      });
     }
   };
 
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false); // Garante que o estado de gravação seja atualizado
+    }
+  };
 
-  const handleAddNote = async () => {
+  const handleSendTextComment = async () => {
     if (!newText.trim() || !project) return;
     
     setIsAddingComment(true);
@@ -157,6 +144,24 @@ export const MobileProjectDetail = () => {
     }
     
     setIsAddingComment(false);
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!project) return;
+    
+    try {
+      await updateProject(project.id, { status: newStatus as any });
+      toast({
+        title: "Status atualizado",
+        description: `Status do projeto alterado para ${getStatusLabel(newStatus)}`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar status",
+        description: error.message || "Não foi possível atualizar o status do projeto.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -179,34 +184,6 @@ export const MobileProjectDetail = () => {
     return labels[status as keyof typeof labels] || status;
   };
 
-  // Gera URLs assinadas para áudios quando comentários mudam
-  useEffect(() => {
-    const genUrls = async () => {
-      const pending = comments.filter(c => c.type === 'audio' && c.audio_url && !audioUrls[c.id]);
-      if (pending.length === 0) return;
-      const newMap: Record<string, string> = {};
-      for (const c of pending) {
-        const { data, error } = await supabase.storage
-          .from('project_files')
-          .createSignedUrl(c.audio_url!, 60 * 60);
-        if (!error && data?.signedUrl) {
-          newMap[c.id] = data.signedUrl;
-        }
-      }
-      if (Object.keys(newMap).length) {
-        setAudioUrls(prev => ({ ...prev, ...newMap }));
-      }
-    };
-    genUrls();
-  }, [comments]);
-
-  // Agrupa comentários por dia (YYYY-MM-DD)
-  const groupedComments = comments.reduce((acc: Record<string, typeof comments>, c) => {
-    const key = new Date(c.created_at).toISOString().slice(0,10);
-    (acc[key] = acc[key] || []).push(c);
-    return acc;
-  }, {} as Record<string, typeof comments>);
-
   if (loading || commentsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -223,27 +200,21 @@ export const MobileProjectDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header 
         userType="implantador" 
         userName={user?.nome || "Implantador"}
         onLogout={signOut}
+        showBackButton={true} // Mantém o botão de voltar fixo no Header
       />
       
-      <main className="pb-24">
-        {/* Project Info - Fixed Header */}
-        <div className="bg-white border-b border-border p-4">
+      <main className="flex-1 overflow-y-auto p-4 flex flex-col"> {/* Removido pb-24, alterado para flex-col e flex-1 */}
+        {/* Project Info - Agora rola com o conteúdo */}
+        <div className="bg-white border-b border-border p-4 mb-4 rounded-lg shadow-sm"> {/* Removido sticky e top-16 */}
           <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => navigate('/mobile')}
-                  className="p-1"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
+                {/* O botão de voltar foi para o Header */}
                 <span className="text-xs font-mono text-medium-gray">{project.chamado}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -252,13 +223,13 @@ export const MobileProjectDetail = () => {
                 </Badge>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-1" aria-label="Alternar informações do projeto">
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-4 w-4 transform transition-transform" />
                   </Button>
                 </CollapsibleTrigger>
               </div>
             </div>
 
-            <CollapsibleContent>
+            <CollapsibleContent className="overflow-hidden transition-all duration-300 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
               <h1 className="text-lg font-bold text-dark-gray mb-1">
                 {project.nome_cartorio}
               </h1>
@@ -269,7 +240,7 @@ export const MobileProjectDetail = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
-                  <span>{project.sistema}</span>
+                  <span>{Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema}</span> {/* Exibe sistemas como string separada por vírgula */}
                 </div>
               </div>
               {project.observacao_admin && (
@@ -278,50 +249,79 @@ export const MobileProjectDetail = () => {
                   <p className="text-sm text-dark-gray">{project.observacao_admin}</p>
                 </div>
               )}
+
+              {/* Status Update */}
+              <div className="mt-3">
+                <label className="text-xs text-medium-gray mb-1 block">Atualizar Status:</label>
+                <Select 
+                  value={project.status} 
+                  onValueChange={handleStatusChange}
+                  disabled={project.status === 'finalizado'} // Desabilita se já finalizado
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aguardando">Agendado</SelectItem>
+                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    <SelectItem value="finalizado">Concluído</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CollapsibleContent>
           </Collapsible>
         </div>
 
-        {/* Comments/Timeline */}
-        <div className="p-4 space-y-6">
-          {Object.keys(groupedComments).length > 0 && (
-            <div>
-              {Object.entries(groupedComments).sort(([a],[b]) => a.localeCompare(b)).map(([day, dayComments]) => (
-                <div key={day} className="mb-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-px bg-border flex-1"></div>
-                    <span className="text-sm font-medium text-dark-gray px-3 py-1 bg-light-gray rounded-full">
-                      {formatDate(day)}
-                    </span>
-                    <div className="h-px bg-border flex-1"></div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {dayComments.map((comment) => (
+        {/* Comments/Timeline - Agora usa groupedComments e dados reais */}
+        {Object.keys(groupedComments).length > 0 ? (
+          Object.entries(groupedComments)
+            .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime()) // Ordena por data
+            .map(([date, dailyComments]) => (
+              <div key={date} className="mb-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-px bg-border flex-1"></div>
+                  <span className="text-sm font-medium text-dark-gray px-3 py-1 bg-light-gray rounded-full">
+                    {new Date(date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                  <div className="h-px bg-border flex-1"></div>
+                </div>
+                
+                <div className="space-y-3">
+                  {dailyComments
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Ordena comentários do dia por timestamp
+                    .map((comment) => (
                       <Card key={comment.id} className="shadow-sm">
                         <CardContent className="p-3">
                           <div className="flex items-start gap-3">
                             <div className="bg-wine-red-light p-2 rounded-lg">
-                              <FileText className="h-4 w-4" />
+                              {comment.type === 'audio' ? (
+                                <Mic className="h-4 w-4 text-wine-red" />
+                              ) : (
+                                <FileText className="h-4 w-4 text-wine-red" />
+                              )}
                             </div>
+                            
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs text-medium-gray">
-                                  {new Date(comment.created_at).toLocaleString('pt-BR')}
+                                  {new Date(comment.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <Badge variant="outline" className="text-xs">
                                   {comment.user?.nome}
                                 </Badge>
                               </div>
-
+                              
                               {comment.type === 'audio' ? (
                                 <div className="bg-wine-red-light p-3 rounded-lg">
-                                  <audio
-                                    className="w-full"
-                                    controls
-                                    src={audioUrls[comment.id]}
-                                  />
-                                  <p className="text-sm text-dark-gray mt-2">{comment.texto}</p>
+                                  <div className="flex items-center gap-3">
+                                    {/* Adicionar lógica de play/pause se necessário, por enquanto um player HTML básico */}
+                                    <audio controls src={audioUrls[comment.id]} className="w-full">
+                                      Seu navegador não suporta o elemento de áudio.
+                                    </audio>
+                                  </div>
+                                  <p className="text-sm text-dark-gray mt-2">
+                                    {comment.texto || "Transcrição pendente..."}
+                                  </p>
                                 </div>
                               ) : (
                                 <div className="bg-light-gray p-3 rounded-lg">
@@ -333,59 +333,61 @@ export const MobileProjectDetail = () => {
                         </CardContent>
                       </Card>
                     ))}
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum histórico de atividades para este projeto.
+          </div>
+        )}
       </main>
 
-      {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-3">
-        <div className="flex items-end gap-2">
-          <Button variant="outline" size="icon" aria-label="Anexar">
-            <Paperclip className="h-5 w-5" />
+      {/* Fixed Bottom Actions - Layout WhatsApp-like */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-3 flex items-end gap-2">
+        {/* Botão Anexar */}
+        <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0">
+          <Paperclip className="h-5 w-5 text-medium-gray" />
+        </Button>
+        
+        {/* Campo de texto (Textarea) */}
+        <Textarea
+          placeholder={isRecording ? `Gravando... ${formatTime(recordingTime)}` : "Adicionar observação..."}
+          value={newText}
+          onChange={(e) => setNewText(e.target.value)}
+          className="flex-1 resize-none min-h-[40px] max-h-32 text-base rounded-full py-2 px-4 shadow-inner"
+          rows={1}
+          disabled={isRecording} // Desabilita o textarea durante a gravação
+        />
+        
+        {/* Botão Dinâmico: Enviar ou Microfone */}
+        {newText.trim() ? (
+          <Button 
+            size="icon"
+            className="h-10 w-10 rounded-full bg-wine-red hover:bg-wine-red-hover shrink-0"
+            disabled={isAddingComment}
+            onClick={handleSendTextComment}
+          >
+            {isAddingComment ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
           </Button>
-
-          <Textarea
-            placeholder="Escreva uma mensagem..."
-            value={newText}
-            onChange={(e) => setNewText(e.target.value)}
-            className="resize-none min-h-[40px] max-h-32 flex-1"
-            rows={1}
-          />
-
-          {newText.trim() ? (
-            <Button 
-              className="bg-wine-red hover:bg-wine-red-hover"
-              disabled={isAddingComment}
-              onClick={handleAddNote}
-              aria-label="Enviar mensagem"
-            >
-              {isAddingComment ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
-          ) : (
-            <Button 
-              className={`rounded-full w-12 h-12 ${isRecording ? "bg-destructive hover:bg-destructive/90" : "bg-wine-red hover:bg-wine-red-hover"}`}
-              onClick={() => (isRecording ? stopRecording() : startRecording())}
-              aria-label={isRecording ? "Parar gravação" : "Iniciar gravação"}
-            >
-              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </Button>
-          )}
-        </div>
-
-        {isRecording && (
-          <div className="text-center mt-2">
-            <p className="text-sm text-wine-red font-medium">
-              Gravando... {formatTime(recordingTime)}
-            </p>
-          </div>
+        ) : (
+          <Button
+            size="icon"
+            className={`h-10 w-10 rounded-full shrink-0 ${
+              isRecording 
+                ? "bg-destructive hover:bg-destructive/90 pulse-record" // Efeito de pulsação para gravação
+                : "bg-wine-red hover:bg-wine-red-hover"
+            }`}
+            onClick={isRecording ? stopRecording : startRecording}
+            aria-label={isRecording ? "Parar gravação" : "Iniciar gravação"}
+            disabled={isAddingComment}
+          >
+            {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </Button>
         )}
       </div>
     </div>
