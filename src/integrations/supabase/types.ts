@@ -16,442 +16,450 @@ export type Database = {
     Tables: {
       anexos: {
         Row: {
-          autor_id: string,
-          created_at: string,
-          data: string,
-          descricao: string | null,
-          id: string,
-          projeto_id: string,
-          tipo: Database["public"]["Enums"]["anexo_type"],
-          updated_at: string,
-          url_arquivo: string,
-        },
+          autor_id: string
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          projeto_id: string
+          tipo: Database["public"]["Enums"]["anexo_type"]
+          updated_at: string
+          url_arquivo: string
+        }
         Insert: {
-          autor_id: string,
-          created_at?: string,
-          data?: string,
-          descricao?: string | null,
-          id?: string,
-          projeto_id: string,
-          tipo: Database["public"]["Enums"]["anexo_type"],
-          updated_at?: string,
-          url_arquivo: string,
-        },
+          autor_id: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          projeto_id: string
+          tipo: Database["public"]["Enums"]["anexo_type"]
+          updated_at?: string
+          url_arquivo: string
+        }
         Update: {
-          autor_id?: string,
-          created_at?: string,
-          data?: string,
-          descricao?: string | null,
-          id?: string,
-          projeto_id?: string,
-          tipo?: Database["public"]["Enums"]["anexo_type"],
-          updated_at?: string,
-          url_arquivo?: string,
-        },
+          autor_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          projeto_id?: string
+          tipo?: Database["public"]["Enums"]["anexo_type"]
+          updated_at?: string
+          url_arquivo?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "anexos_autor_id_fkey",
-            columns: ["autor_id"],
-            isOneToOne: false,
-            referencedRelation: "users",
-            referencedColumns: ["id"],
+            foreignKeyName: "anexos_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "anexos_projeto_id_fkey",
-            columns: ["projeto_id"],
-            isOneToOne: false,
-            referencedRelation: "projetos",
-            referencedColumns: ["id"],
+            foreignKeyName: "anexos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
           },
         ]
       }
       atividades_recentes: {
         Row: {
-          acao: string,
-          created_at: string,
-          descricao: string | null,
-          id: string,
-          projeto_id: string | null,
-          usuario_id: string | null,
-        },
+          acao: string
+          created_at: string
+          descricao: string | null
+          id: string
+          projeto_id: string | null
+          usuario_id: string | null
+        }
         Insert: {
-          acao: string,
-          created_at?: string,
-          descricao?: string | null,
-          id?: string,
-          projeto_id?: string | null,
-          usuario_id?: string | null,
-        },
+          acao: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          projeto_id?: string | null
+          usuario_id?: string | null
+        }
         Update: {
-          acao?: string,
-          created_at?: string,
-          descricao?: string | null,
-          id?: string,
-          projeto_id?: string | null,
-          usuario_id?: string | null,
-        },
+          acao?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          projeto_id?: string | null
+          usuario_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "atividades_recentes_projeto_id_fkey",
-            columns: ["projeto_id"],
-            isOneToOne: false,
-            referencedRelation: "projetos",
-            referencedColumns: ["id"],
+            foreignKeyName: "atividades_recentes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "atividades_recentes_usuario_id_fkey",
-            columns: ["usuario_id"],
-            isOneToOne: false,
-            referencedRelation: "users",
-            referencedColumns: ["id"],
+            foreignKeyName: "atividades_recentes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
       auditoria: {
         Row: {
-          acao: string,
-          data: string,
-          detalhes: Json | null,
-          id: string,
-          projeto_id: string | null,
-          usuario_id: string,
-        },
+          acao: string
+          data: string
+          detalhes: Json | null
+          id: string
+          projeto_id: string | null
+          usuario_id: string
+        }
         Insert: {
-          acao: string,
-          data?: string,
-          detalhes?: Json | null,
-          id?: string,
-          projeto_id?: string | null,
-          usuario_id: string,
-        },
+          acao: string
+          data?: string
+          detalhes?: Json | null
+          id?: string
+          projeto_id?: string | null
+          usuario_id: string
+        }
         Update: {
-          acao?: string,
-          data?: string,
-          detalhes?: Json | null,
-          id?: string,
-          projeto_id?: string | null,
-          usuario_id?: string,
-        },
+          acao?: string
+          data?: string
+          detalhes?: Json | null
+          id?: string
+          projeto_id?: string | null
+          usuario_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "auditoria_projeto_id_fkey",
-            columns: ["projeto_id"],
-            isOneToOne: false,
-            referencedRelation: "projetos",
-            referencedColumns: ["id"],
+            foreignKeyName: "auditoria_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "auditoria_usuario_id_fkey",
-            columns: ["usuario_id"],
-            isOneToOne: false,
-            referencedRelation: "users",
-            referencedColumns: ["id"],
+            foreignKeyName: "auditoria_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
       blocos: {
         Row: {
-          autor_id: string,
-          created_at: string,
-          data: string,
-          dia: string,
-          hash_arquivo: string | null,
-          id: string,
-          projeto_id: string,
-          texto: string | null,
-          tipo: Database["public"]["Enums"]["bloco_type"],
-          transcricao: string | null,
-          updated_at: string,
-          url_arquivo: string | null,
-          versao: number,
-        },
+          autor_id: string
+          created_at: string
+          data: string
+          dia: string
+          hash_arquivo: string | null
+          id: string
+          projeto_id: string
+          texto: string | null
+          tipo: Database["public"]["Enums"]["bloco_type"]
+          transcricao: string | null
+          updated_at: string
+          url_arquivo: string | null
+          versao: number
+        }
         Insert: {
-          autor_id: string,
-          created_at?: string,
-          data?: string,
-          dia?: string,
-          hash_arquivo?: string | null,
-          id?: string,
-          projeto_id: string,
-          texto?: string | null,
-          tipo: Database["public"]["Enums"]["bloco_type"],
-          transcricao?: string | null,
-          updated_at?: string,
-          url_arquivo?: string | null,
-          versao?: number,
-        },
+          autor_id: string
+          created_at?: string
+          data?: string
+          dia?: string
+          hash_arquivo?: string | null
+          id?: string
+          projeto_id: string
+          texto?: string | null
+          tipo: Database["public"]["Enums"]["bloco_type"]
+          transcricao?: string | null
+          updated_at?: string
+          url_arquivo?: string | null
+          versao?: number
+        }
         Update: {
-          autor_id?: string,
-          created_at?: string,
-          data?: string,
-          dia?: string,
-          hash_arquivo?: string | null,
-          id?: string,
-          projeto_id?: string,
-          texto?: string | null,
-          tipo?: Database["public"]["Enums"]["bloco_type"],
-          transcricao?: string | null,
-          updated_at?: string,
-          url_arquivo?: string | null,
-          versao?: number,
-        },
+          autor_id?: string
+          created_at?: string
+          data?: string
+          dia?: string
+          hash_arquivo?: string | null
+          id?: string
+          projeto_id?: string
+          texto?: string | null
+          tipo?: Database["public"]["Enums"]["bloco_type"]
+          transcricao?: string | null
+          updated_at?: string
+          url_arquivo?: string | null
+          versao?: number
+        }
         Relationships: [
           {
-            foreignKeyName: "blocos_autor_id_fkey",
-            columns: ["autor_id"],
-            isOneToOne: false,
-            referencedRelation: "users",
-            referencedColumns: ["id"],
+            foreignKeyName: "blocos_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "blocos_projeto_id_fkey",
-            columns: ["projeto_id"],
-            isOneToOne: false,
-            referencedRelation: "projetos",
-            referencedColumns: ["id"],
+            foreignKeyName: "blocos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
           },
         ]
       }
       comentarios_projeto: {
         Row: {
-          created_at: string,
-          id: string,
-          projeto_id: string,
-          texto: string,
-          updated_at: string,
-          usuario_id: string | null,
-          type: "text" | "audio",
-          audio_url: string | null,
-        },
+          audio_url: string | null
+          created_at: string
+          id: string
+          projeto_id: string
+          texto: string
+          type: string
+          updated_at: string
+          usuario_id: string | null
+        }
         Insert: {
-          created_at?: string,
-          id?: string,
-          projeto_id: string,
-          texto: string,
-          updated_at?: string,
-          usuario_id?: string | null,
-          type?: "text" | "audio",
-          audio_url?: string | null,
-        },
+          audio_url?: string | null
+          created_at?: string
+          id?: string
+          projeto_id: string
+          texto: string
+          type?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
         Update: {
-          created_at?: string,
-          id?: string,
-          projeto_id?: string,
-          texto?: string,
-          updated_at?: string,
-          usuario_id?: string | null,
-          type?: "text" | "audio",
-          audio_url?: string | null,
-        },
-        Relationships: []
+          audio_url?: string | null
+          created_at?: string
+          id?: string
+          projeto_id?: string
+          texto?: string
+          type?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_comentarios_usuario_auth_id"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
+          },
+        ]
       }
       projetos: {
         Row: {
-          chamado: string,
-          created_at: string,
-          data_fim_implantacao: string,
-          data_inicio_implantacao: string,
-          email_contato: string,
-          estado: string,
-          id: string,
-          nome_cartorio: string,
-          observacao_admin: string | null,
-          sistema: string[],
-          status: Database["public"]["Enums"]["project_status"][number], 
-          telefone_contato: string | null,
-          updated_at: string,
-          usuario_id: string | null,
-        },
+          chamado: string
+          created_at: string
+          data_fim_implantacao: string
+          data_inicio_implantacao: string
+          email_contato: string
+          estado: string
+          id: string
+          nome_cartorio: string
+          observacao_admin: string | null
+          sistema: string[]
+          status: Database["public"]["Enums"]["project_status"]
+          telefone_contato: string | null
+          updated_at: string
+          usuario_id: string | null
+        }
         Insert: {
-          chamado: string,
-          created_at?: string,
-          data_fim_implantacao: string,
-          data_inicio_implantacao: string,
-          email_contato: string,
-          estado: string,
-          id?: string,
-          nome_cartorio: string,
-          observacao_admin?: string | null,
-          sistema: string[],
-          status?: Database["public"]["Enums"]["project_status"][number], 
-          telefone_contato?: string | null,
-          updated_at?: string,
-          usuario_id?: string | null,
-        },
+          chamado: string
+          created_at?: string
+          data_fim_implantacao: string
+          data_inicio_implantacao: string
+          email_contato: string
+          estado: string
+          id?: string
+          nome_cartorio: string
+          observacao_admin?: string | null
+          sistema: string[]
+          status?: Database["public"]["Enums"]["project_status"]
+          telefone_contato?: string | null
+          updated_at?: string
+          usuario_id?: string | null
+        }
         Update: {
-          chamado?: string,
-          created_at?: string,
-          data_fim_implantacao?: string,
-          data_inicio_implantacao?: string,
-          email_contato?: string,
-          estado?: string,
-          id?: string,
-          nome_cartorio?: string,
-          observacao_admin?: string | null,
-          sistema?: string[],
-          status?: Database["public"]["Enums"]["project_status"][number], 
-          telefone_contato?: string | null,
-          updated_at?: string,
-          usuario_id?: string | null,
-        },
+          chamado?: string
+          created_at?: string
+          data_fim_implantacao?: string
+          data_inicio_implantacao?: string
+          email_contato?: string
+          estado?: string
+          id?: string
+          nome_cartorio?: string
+          observacao_admin?: string | null
+          sistema?: string[]
+          status?: Database["public"]["Enums"]["project_status"]
+          telefone_contato?: string | null
+          updated_at?: string
+          usuario_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "projetos_usuario_id_users_auth_id_fkey",
-            columns: ["usuario_id"],
-            isOneToOne: false,
-            referencedRelation: "users",
-            referencedColumns: ["auth_id"],
+            foreignKeyName: "projetos_usuario_id_users_auth_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
           },
         ]
       }
       relatorios: {
         Row: {
-          created_at: string,
-          created_by: string,
-          data_geracao: string,
-          id: string,
-          projeto_id: string,
-          status: Database["public"]["Enums"]["relatorio_status"],
-          texto: string | null,
-          updated_at: string,
-          url_docx: string | null,
-          url_pdf: string | null,
-          url_txt: string | null,
-          versao: number,
-        },
+          created_at: string
+          created_by: string
+          data_geracao: string
+          id: string
+          projeto_id: string
+          status: Database["public"]["Enums"]["relatorio_status"]
+          texto: string | null
+          updated_at: string
+          url_docx: string | null
+          url_pdf: string | null
+          url_txt: string | null
+          versao: number
+        }
         Insert: {
-          created_at?: string,
-          created_by: string,
-          data_geracao?: string,
-          id?: string,
-          projeto_id: string,
-          status?: Database["public"]["Enums"]["relatorio_status"],
-          texto?: string | null,
-          updated_at?: string,
-          url_docx?: string | null,
-          url_pdf?: string | null,
-          url_txt?: string | null,
-          versao?: number,
-        },
+          created_at?: string
+          created_by: string
+          data_geracao?: string
+          id?: string
+          projeto_id: string
+          status?: Database["public"]["Enums"]["relatorio_status"]
+          texto?: string | null
+          updated_at?: string
+          url_docx?: string | null
+          url_pdf?: string | null
+          url_txt?: string | null
+          versao?: number
+        }
         Update: {
-          created_at?: string,
-          created_by?: string,
-          data_geracao?: string,
-          id?: string,
-          projeto_id?: string,
-          status?: Database["public"]["Enums"]["relatorio_status"],
-          texto?: string | null,
-          updated_at?: string,
-          url_docx?: string | null,
-          url_pdf?: string | null,
-          url_txt?: string | null,
-          versao?: number,
-        },
+          created_at?: string
+          created_by?: string
+          data_geracao?: string
+          id?: string
+          projeto_id?: string
+          status?: Database["public"]["Enums"]["relatorio_status"]
+          texto?: string | null
+          updated_at?: string
+          url_docx?: string | null
+          url_pdf?: string | null
+          url_txt?: string | null
+          versao?: number
+        }
         Relationships: [
           {
-            foreignKeyName: "relatorios_created_by_fkey",
-            columns: ["created_by"],
-            isOneToOne: false,
-            referencedRelation: "users",
-            referencedColumns: ["id"],
+            foreignKeyName: "relatorios_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "relatorios_projeto_id_fkey",
-            columns: ["projeto_id"],
-            isOneToOne: false,
-            referencedRelation: "projetos",
-            referencedColumns: ["id"],
+            foreignKeyName: "relatorios_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
           },
         ]
       }
       sistemas: {
         Row: {
-          ativo: boolean,
-          created_at: string,
-          id: string,
-          nome: string,
-          updated_at: string,
-        },
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
         Insert: {
-          ativo?: boolean,
-          created_at?: string,
-          id?: string,
-          nome: string,
-          updated_at?: string,
-        },
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
         Update: {
-          ativo?: boolean,
-          created_at?: string,
-          id?: string,
-          nome?: string,
-          updated_at?: string,
-        },
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
         Relationships: []
       }
       status_projeto: {
         Row: {
-          ativo: boolean,
-          cor: string,
-          created_at: string,
-          id: string,
-          nome: string,
-          ordem: number,
-          updated_at: string,
-        },
+          ativo: boolean
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
         Insert: {
-          ativo?: boolean,
-          cor: string,
-          created_at?: string,
-          id?: string,
-          nome: string,
-          ordem: number,
-          updated_at?: string,
-        },
+          ativo?: boolean
+          cor: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem: number
+          updated_at?: string
+        }
         Update: {
-          ativo?: boolean,
-          cor?: string,
-          created_at?: string,
-          id?: string,
-          nome?: string,
-          ordem?: number,
-          updated_at?: string,
-        },
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
         Relationships: []
       }
       users: {
         Row: {
-          ativo: boolean,
-          auth_id: string | null,
-          created_at: string,
-          email: string,
-          id: string,
-          nome: string,
-          tipo: Database["public"]["Enums"]["user_type"][number], 
-          updated_at: string,
-          username: string | null,
-        },
+          ativo: boolean
+          auth_id: string | null
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          tipo: Database["public"]["Enums"]["user_type"]
+          updated_at: string
+          username: string | null
+        }
         Insert: {
-          ativo?: boolean,
-          auth_id?: string | null,
-          created_at?: string,
-          email: string,
-          id?: string,
-          nome: string,
-          tipo?: Database["public"]["Enums"]["user_type"][number], 
-          updated_at?: string,
-          username?: string | null,
-        },
+          ativo?: boolean
+          auth_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          tipo?: Database["public"]["Enums"]["user_type"]
+          updated_at?: string
+          username?: string | null
+        }
         Update: {
-          ativo?: boolean,
-          auth_id?: string | null,
-          created_at?: string,
-          email?: string,
-          id?: string,
-          nome?: string,
-          tipo?: Database["public"]["Enums"]["user_type"][number], 
-          updated_at?: string,
-          username?: string | null,
-        },
+          ativo?: boolean
+          auth_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          tipo?: Database["public"]["Enums"]["user_type"]
+          updated_at?: string
+          username?: string | null
+        }
         Relationships: []
       }
     }
@@ -460,41 +468,40 @@ export type Database = {
     }
     Functions: {
       authenticate_implantador: {
-        Args: { p_username: string; p_password: string },
+        Args: { p_username: string; p_password: string }
         Returns: {
-          id: string,
-          email: string,
-          user_metadata: Json,
-        }[],
-      },
+          id: string
+          email: string
+          user_metadata: Json
+        }[]
+      }
       get_current_user_type: {
-        Args: Record<PropertyKey, never>,
-        Returns: Database["public"]["Enums"]["user_type"],
-      },
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_type"]
+      }
       is_admin: {
-        Args: Record<PropertyKey, never>,
-        Returns: boolean,
-      },
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       log_audit: {
-        Args: { p_projeto_id: string; p_acao: string; p_detalhes?: Json },
-        Returns: string,
-      },
+        Args: { p_projeto_id: string; p_acao: string; p_detalhes?: Json }
+        Returns: string
+      }
       user_owns_project: {
-        Args: { project_id: string },
-        Returns: boolean,
-      },
+        Args: { p_project_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      anexo_type: ["imagem", "pdf", "outro"],
-      bloco_type: ["audio", "texto"],
-      project_status: ["aguardando", "em_andamento", "finalizado", "cancelado"],
-      relatorio_status: ["gerado", "revisado"],
-      sistema_type: ["Orion PRO", "Orion REG", "Orion TN", "WebRI"],
-      user_type: ["admin", "implantador"],
-    },
+      anexo_type: "imagem" | "pdf" | "outro"
+      bloco_type: "audio" | "texto"
+      project_status: "aguardando" | "em_andamento" | "finalizado" | "cancelado"
+      relatorio_status: "gerado" | "revisado"
+      sistema_type: "Orion PRO" | "Orion REG" | "Orion TN" | "WebRI"
+      user_type: "admin" | "implantador"
+    }
     CompositeTypes: {
-      // CORRIGIDO AQUI: Removido 'key:'
-      [_ in never]: never 
+      [_ in never]: never
     }
   }
 }
@@ -602,7 +609,7 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals }, // CORRIGIDO AQUI
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -627,4 +634,4 @@ export const Constants = {
       user_type: ["admin", "implantador"],
     },
   },
-} as const;
+} as const
