@@ -57,6 +57,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "anexos_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe_lookup"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "anexos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -105,6 +112,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "atividades_recentes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe_lookup"
+            referencedColumns: ["id"]
+          },
         ]
       }
       auditoria: {
@@ -145,6 +159,13 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe_lookup"
             referencedColumns: ["id"]
           },
         ]
@@ -204,6 +225,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "blocos_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe_lookup"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "blocos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -249,6 +277,13 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["auth_id"]
+          },
+          {
+            foreignKeyName: "fk_comentarios_usuario_auth_id"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe_lookup"
             referencedColumns: ["auth_id"]
           },
         ]
@@ -310,6 +345,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["auth_id"]
           },
+          {
+            foreignKeyName: "projetos_usuario_id_users_auth_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users_safe_lookup"
+            referencedColumns: ["auth_id"]
+          },
         ]
       }
       relatorios: {
@@ -361,6 +403,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorios_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_safe_lookup"
             referencedColumns: ["id"]
           },
           {
@@ -464,7 +513,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      users_safe_lookup: {
+        Row: {
+          ativo: boolean | null
+          auth_id: string | null
+          id: string | null
+          nome: string | null
+          tipo: Database["public"]["Enums"]["user_type"] | null
+          username: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          auth_id?: string | null
+          id?: string | null
+          nome?: string | null
+          tipo?: Database["public"]["Enums"]["user_type"] | null
+          username?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          auth_id?: string | null
+          id?: string | null
+          nome?: string | null
+          tipo?: Database["public"]["Enums"]["user_type"] | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       authenticate_implantador: {
