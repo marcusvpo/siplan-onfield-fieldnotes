@@ -211,38 +211,27 @@ export const useAuth = () => {
     try {
       console.log('[AUTH] Tentativa de login do implantador:', username);
       
-      // First, find user in our safe lookup view (no email exposure to anonymous)
-      const { data: safeUserData, error: userError } = await supabase
+      // Get user data including email from secure lookup table
+      const { data: userData, error: userError } = await supabase
         .from('users_safe_lookup')
         .select(`
           auth_id,
           nome,
           tipo,
           username,
-          ativo
+          ativo,
+          email
         `)
         .eq('username', username)
         .single();
 
-      if (userError || !safeUserData) {
-        console.error('[AUTH] Erro ao buscar usuário na lookup segura:', userError);
+      if (userError || !userData) {
+        console.error('[AUTH] Erro ao buscar usuário:', userError);
         throw new Error("Usuário não encontrado ou inativo.");
       }
 
-      // Now get the full user data including email (requires auth)
-      const { data: userData, error: fullUserError } = await supabase
-        .from('users')
-        .select('email')
-        .eq('auth_id', safeUserData.auth_id)
-        .single();
-
-      if (fullUserError) {
-        console.error('[AUTH] Erro ao buscar email do usuário:', fullUserError);
-        throw new Error("Usuário não encontrado ou inativo.");
-      }
-
-      if (!userData) {
-        console.log('[AUTH] Dados completos do usuário não encontrados:', username);
+      if (!userData.ativo || userData.tipo !== 'implantador') {
+        console.log('[AUTH] Usuário inativo ou não é implantador:', username);
         throw new Error("Usuário não encontrado ou inativo.");
       }
 

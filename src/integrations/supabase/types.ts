@@ -467,6 +467,7 @@ export type Database = {
           ativo: boolean
           auth_id: string | null
           created_at: string | null
+          email: string | null
           id: string
           nome: string
           tipo: Database["public"]["Enums"]["user_type"]
@@ -478,6 +479,7 @@ export type Database = {
           ativo?: boolean
           auth_id?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
           nome: string
           tipo: Database["public"]["Enums"]["user_type"]
@@ -489,6 +491,7 @@ export type Database = {
           ativo?: boolean
           auth_id?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
           nome?: string
           tipo?: Database["public"]["Enums"]["user_type"]
