@@ -47,7 +47,8 @@ export const useProjectComments = (projectId?: string) => {
         .select(`
           *,
           user:users!fk_comentarios_usuario_auth_id(nome, tipo)
-        `);
+        `)
+        .eq('projeto_id', projectId);
 
       if (error) throw error;
 
