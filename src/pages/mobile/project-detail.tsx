@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectComments } from "@/hooks/use-project-comments";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Mic, 
   MicOff,
@@ -23,7 +26,11 @@ import {
   FileText,
   Image as ImageIcon,
   ArrowLeft,
-  ChevronDown
+  ChevronDown,
+  MoreVertical,
+  Trash2,
+  ChevronUp,
+  Loader2
 } from "lucide-react";
 
 // Removendo mockTimeline e getActivityIcon, pois agora usaremos dados reais e ícones do tipo
@@ -38,14 +45,17 @@ export const MobileProjectDetail = () => {
     comments, 
     loading: commentsLoading, 
     addComment, 
-    addAudioComment, // <--- EXPORTADO DO HOOK
-    audioUrls // <--- EXPORTADO DO HOOK para URLs de áudio
+    addAudioComment,
+    deleteComment,
+    audioUrls
   } = useProjectComments(id);
   const { toast } = useToast();
   
   const [newText, setNewText] = useState("");
-  const [isAddingComment, setIsAddingComment] = useState(false); // Para texto e áudio
-  const [detailsOpen, setDetailsOpen] = useState(false); // Para o collapsible de detalhes do projeto
+  const [isAddingComment, setIsAddingComment] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [expandedTranscriptions, setExpandedTranscriptions] = useState<Record<string, boolean>>({});
+  const [transcriptionStatuses, setTranscriptionStatuses] = useState<Record<string, 'pending' | 'completed'>>({});
 
   // Estados para gravação de áudio
   const [isRecording, setIsRecording] = useState(false);
@@ -65,6 +75,48 @@ export const MobileProjectDetail = () => {
       navigate('/mobile');
     }
   }, [project, loading, navigate, toast]);
+
+  // Realtime subscription for transcription updates
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'comentarios_projeto',
+          filter: `projeto_id=eq.${id}`
+        },
+        (payload) => {
+          const updatedComment = payload.new as any;
+          if (updatedComment.type === 'audio' && updatedComment.texto !== 'Transcrição pendente...') {
+            setTranscriptionStatuses(prev => ({
+              ...prev,
+              [updatedComment.id]: 'completed'
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
+  // Initialize transcription statuses when comments load
+  useEffect(() => {
+    const statuses: Record<string, 'pending' | 'completed'> = {};
+    comments.forEach(comment => {
+      if (comment.type === 'audio') {
+        statuses[comment.id] = comment.texto === 'Transcrição pendente...' ? 'pending' : 'completed';
+      }
+    });
+    setTranscriptionStatuses(statuses);
+  }, [comments]);
 
   // Função para formatar tempo (usado no cronômetro de gravação e duração do áudio)
   const formatTime = (seconds: number) => {
@@ -146,6 +198,23 @@ export const MobileProjectDetail = () => {
     setIsAddingComment(false);
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    const success = await deleteComment(commentId);
+    if (success) {
+      toast({
+        title: "Comentário excluído",
+        description: "O comentário foi removido com sucesso."
+      });
+    }
+  };
+
+  const toggleTranscription = (commentId: string) => {
+    setExpandedTranscriptions(prev => ({
+      ...prev,
+      [commentId]: !prev[commentId]
+    }));
+  };
+
   const handleStatusChange = async (newStatus: string) => {
     if (!project) return;
     
@@ -201,62 +270,63 @@ export const MobileProjectDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header 
-        userType="implantador" 
-        userName={user?.nome || "Implantador"}
-        onLogout={signOut}
-        showBackButton={true} // Mantém o botão de voltar fixo no Header
-      />
-      
-      <main className="flex-1 overflow-y-auto p-4 flex flex-col"> {/* Removido pb-24, alterado para flex-col e flex-1 */}
-        {/* Project Info - Agora rola com o conteúdo */}
-        <div className="bg-white border-b border-border p-4 mb-4 rounded-lg shadow-sm"> {/* Removido sticky e top-16 */}
+      {/* Fixed Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-border">
+        <Header 
+          userType="implantador" 
+          userName={user?.nome || "Implantador"}
+          onLogout={signOut}
+          showBackButton={true}
+        />
+      </div>
+
+      {/* Fixed Project Info */}
+      <div className="fixed top-16 left-0 right-0 z-40 bg-white border-b border-border">
+        <div className="p-4">
           <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                {/* O botão de voltar foi para o Header */}
-                <span className="text-xs font-mono text-medium-gray">{project.chamado}</span>
+                <span className="text-xs font-mono text-medium-gray">{project?.chamado}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className={getStatusColor(project.status)}>
-                  {getStatusLabel(project.status)}
+                <Badge className={getStatusColor(project?.status || '')}>
+                  {getStatusLabel(project?.status || '')}
                 </Badge>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-1" aria-label="Alternar informações do projeto">
-                    <ChevronDown className="h-4 w-4 transform transition-transform" />
+                  <Button variant="ghost" size="sm" className="p-1">
+                    <ChevronDown className={`h-4 w-4 transform transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
                   </Button>
                 </CollapsibleTrigger>
               </div>
             </div>
 
-            <CollapsibleContent className="overflow-hidden transition-all duration-300 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+            <CollapsibleContent>
               <h1 className="text-lg font-bold text-dark-gray mb-1">
-                {project.nome_cartorio}
+                {project?.nome_cartorio}
               </h1>
               <div className="flex flex-wrap gap-4 text-sm text-medium-gray">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  <span>{new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} - {new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}</span>
+                  <span>{project ? `${new Date(project.data_inicio_implantacao).toLocaleDateString('pt-BR')} - ${new Date(project.data_fim_implantacao).toLocaleDateString('pt-BR')}` : ''}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
-                  <span>{Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema}</span> {/* Exibe sistemas como string separada por vírgula */}
+                  <span>{project ? (Array.isArray(project.sistema) ? project.sistema.join(', ') : project.sistema) : ''}</span>
                 </div>
               </div>
-              {project.observacao_admin && (
+              {project?.observacao_admin && (
                 <div className="mt-3 p-2 bg-wine-red-light rounded-lg">
                   <p className="text-xs text-wine-red font-medium">Observação do Admin:</p>
                   <p className="text-sm text-dark-gray">{project.observacao_admin}</p>
                 </div>
               )}
 
-              {/* Status Update */}
               <div className="mt-3">
                 <label className="text-xs text-medium-gray mb-1 block">Atualizar Status:</label>
                 <Select 
-                  value={project.status} 
+                  value={project?.status} 
                   onValueChange={handleStatusChange}
-                  disabled={project.status === 'finalizado'} // Desabilita se já finalizado
+                  disabled={project?.status === 'finalizado'}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -271,8 +341,12 @@ export const MobileProjectDetail = () => {
             </CollapsibleContent>
           </Collapsible>
         </div>
-
-        {/* Comments/Timeline - Agora usa groupedComments e dados reais */}
+      </div>
+      
+      {/* Scrollable Chat Content */}
+      <main className="flex-1 overflow-y-auto" style={{ marginTop: detailsOpen ? '280px' : '160px', paddingBottom: '80px' }}>
+        <div className="p-4">
+        {/* Comments/Timeline */}
         {Object.keys(groupedComments).length > 0 ? (
           Object.entries(groupedComments)
             .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime()) // Ordena por data
@@ -306,22 +380,93 @@ export const MobileProjectDetail = () => {
                                 <span className="text-xs text-medium-gray">
                                   {new Date(comment.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
-                                <Badge variant="outline" className="text-xs">
-                                  {comment.user?.nome}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {comment.user?.nome}
+                                  </Badge>
+                                  
+                                  {/* Comment Options Menu */}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                            <Trash2 className="mr-2 h-3 w-3" />
+                                            Deletar
+                                          </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Tem certeza que deseja excluir este comentário? Esta ação é irreversível.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                              onClick={() => handleDeleteComment(comment.id)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Excluir
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
                               </div>
                               
                               {comment.type === 'audio' ? (
                                 <div className="bg-wine-red-light p-3 rounded-lg">
                                   <div className="flex items-center gap-3">
-                                    {/* Adicionar lógica de play/pause se necessário, por enquanto um player HTML básico */}
                                     <audio controls src={audioUrls[comment.id]} className="w-full">
                                       Seu navegador não suporta o elemento de áudio.
                                     </audio>
                                   </div>
-                                  <p className="text-sm text-dark-gray mt-2">
-                                    {comment.texto || "Transcrição pendente..."}
-                                  </p>
+
+                                  {/* Transcription Status */}
+                                  <div className="mt-2">
+                                    {transcriptionStatuses[comment.id] === 'pending' ? (
+                                      <div className="flex items-center gap-2 text-sm text-medium-gray">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        <span>Transcrevendo áudio...</span>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => toggleTranscription(comment.id)}
+                                          className="text-xs p-1 h-auto text-wine-red hover:text-wine-red-hover"
+                                        >
+                                          {expandedTranscriptions[comment.id] ? (
+                                            <>
+                                              <ChevronUp className="mr-1 h-3 w-3" />
+                                              Ocultar transcrição
+                                            </>
+                                          ) : (
+                                            <>
+                                              <ChevronDown className="mr-1 h-3 w-3" />
+                                              Ver transcrição
+                                            </>
+                                          )}
+                                        </Button>
+                                        
+                                        {expandedTranscriptions[comment.id] && (
+                                          <div className="mt-2 p-2 bg-white/50 rounded border text-sm text-dark-gray">
+                                            {comment.texto || "Transcrição não disponível"}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="bg-light-gray p-3 rounded-lg">
@@ -341,6 +486,7 @@ export const MobileProjectDetail = () => {
             Nenhum histórico de atividades para este projeto.
           </div>
         )}
+        </div>
       </main>
 
       {/* Fixed Bottom Actions - Layout WhatsApp-like */}

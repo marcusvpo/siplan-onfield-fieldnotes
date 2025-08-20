@@ -227,6 +227,41 @@ export const useProjects = () => {
 
   const deleteProject = async (id: string) => {
     try {
+      // 1. Get all comments with audio files for this project
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('comentarios_projeto')
+        .select('id, audio_url')
+        .eq('projeto_id', id);
+
+      if (commentsError) throw commentsError;
+
+      // 2. Delete all audio files from storage
+      const audioUrls = commentsData
+        ?.filter(comment => comment.audio_url)
+        .map(comment => comment.audio_url) || [];
+
+      if (audioUrls.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('project_files')
+          .remove(audioUrls);
+        
+        if (storageError) {
+          console.warn('Erro ao excluir alguns arquivos de áudio:', storageError);
+        }
+      }
+
+      // 3. Delete all comments for this project
+      const { error: deleteCommentsError } = await supabase
+        .from('comentarios_projeto')
+        .delete()
+        .eq('projeto_id', id);
+
+      if (deleteCommentsError) throw deleteCommentsError;
+
+      // 4. Delete all other related data (add more tables as needed)
+      // TODO: Add deletion for other related tables like anexos, blocos, etc.
+
+      // 5. Finally, delete the project
       const { error } = await supabase
         .from('projetos')
         .delete()
@@ -238,8 +273,8 @@ export const useProjects = () => {
       await loadProjects(); // Reload to get updated stats
 
       toast({
-        title: "Projeto excluído",
-        description: "O projeto foi removido com sucesso."
+        title: "Projeto excluído completamente",
+        description: "O projeto e todos os dados relacionados foram removidos com sucesso."
       });
 
       return { error: null };

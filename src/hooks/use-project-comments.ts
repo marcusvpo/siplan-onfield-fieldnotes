@@ -153,6 +153,52 @@ export const useProjectComments = (projectId?: string) => {
     }
   };
 
+  const deleteComment = async (commentId: string): Promise<boolean> => {
+    try {
+      // Get the comment to check for audio file
+      const commentToDelete = comments.find(c => c.id === commentId);
+      
+      // Delete audio file from storage if it exists
+      if (commentToDelete?.type === 'audio' && commentToDelete.audio_url) {
+        const { error: storageError } = await supabase.storage
+          .from('project_files')
+          .remove([commentToDelete.audio_url]);
+        
+        if (storageError) {
+          console.warn('Erro ao excluir arquivo de áudio:', storageError);
+        }
+      }
+
+      // Delete comment from database
+      const { error } = await supabase
+        .from('comentarios_projeto')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      // Update local state
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      
+      // Remove from audio URLs cache
+      setAudioUrls(prev => {
+        const updated = { ...prev };
+        delete updated[commentId];
+        return updated;
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao excluir comentário:', error);
+      toast({
+        title: "Erro ao excluir comentário",
+        description: error.message,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   const addAudioComment = async (audioBlob: Blob): Promise<boolean> => {
     if (!projectId) return false;
 
@@ -255,6 +301,7 @@ export const useProjectComments = (projectId?: string) => {
     loadComments,
     addComment,
     addAudioComment,
+    deleteComment,
     audioUrls
   };
 };
