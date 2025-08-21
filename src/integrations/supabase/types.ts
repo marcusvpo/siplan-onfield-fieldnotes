@@ -222,6 +222,7 @@ export type Database = {
           type: string
           updated_at: string
           usuario_id: string | null
+          image_url: string | null // Adicionado: image_url para Row
         }
         Insert: {
           audio_url?: string | null
@@ -232,6 +233,7 @@ export type Database = {
           type?: string
           updated_at?: string
           usuario_id?: string | null
+          image_url?: string | null // Adicionado: image_url para Insert
         }
         Update: {
           audio_url?: string | null
@@ -242,6 +244,7 @@ export type Database = {
           type?: string
           updated_at?: string
           usuario_id?: string | null
+          image_url?: string | null // Adicionado: image_url para Update
         }
         Relationships: [
           {
