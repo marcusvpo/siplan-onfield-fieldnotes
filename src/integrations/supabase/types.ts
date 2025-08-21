@@ -538,6 +538,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: boolean
       }
+      user_owns_project_from_path: {
+        Args: { file_path: string }
+        Returns: boolean
+      }
     }
     Enums: {
       anexo_type: "imagem" | "pdf" | "outro"
