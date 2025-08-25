@@ -13,6 +13,9 @@ import { useProjectComments } from "@/hooks/use-project-comments";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
+
+// Configuração do webhook n8n para geração de relatório
+const N8N_WEBHOOK_URL = "https://8e2d84dee979.ngrok-free.app/webhook-test/gerar-relatorio";
 import { 
   Mic, 
   MicOff,
@@ -58,6 +61,7 @@ export const MobileProjectDetail = () => {
   const [dragStartPosition, setDragStartPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -295,32 +299,64 @@ export const MobileProjectDetail = () => {
   const handleGenerateReport = async () => {
     if (!project) return;
     
+    setIsGeneratingReport(true);
+    
     try {
-      // Here we would integrate with n8n webhook
-      // For now, we'll show a success message and potentially update project status
-      toast({
-        title: "Gerando relatório",
-        description: "O relatório está sendo gerado pela automação. Você será notificado quando estiver pronto."
+      // Requisição para o webhook n8n
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: project.id
+        })
       });
-      
-      // TODO: Add n8n webhook integration here
-      // const webhookUrl = 'https://your-n8n-webhook-url';
-      // await fetch(webhookUrl, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     projectId: project.id,
-      //     projectName: project.nome_cartorio,
-      //     comments: comments
-      //   })
-      // });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Se o webhook retornou uma URL do PDF
+        if (result.pdf_url) {
+          toast({
+            title: "Relatório gerado com sucesso!",
+            description: "O relatório foi criado e será aberto em uma nova aba."
+          });
+          
+          // Abrir o PDF automaticamente em uma nova aba
+          window.open(result.pdf_url, '_blank');
+        } else {
+          // Sucesso genérico se não houver URL
+          toast({
+            title: "Relatório em processamento",
+            description: "O relatório está sendo gerado. Você será notificado quando estiver pronto."
+          });
+        }
+      } else {
+        // Erro HTTP
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || `Erro HTTP ${response.status}: ${response.statusText}`);
+      }
       
     } catch (error: any) {
+      console.error('Erro ao gerar relatório:', error);
+      
+      // Tratamento de diferentes tipos de erro
+      let errorMessage = "Não foi possível gerar o relatório.";
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        errorMessage = "Erro de conexão com o servidor. Verifique sua conexão com a internet.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro ao gerar relatório",
-        description: error.message || "Não foi possível gerar o relatório.",
+        description: errorMessage,
         variant: "destructive"
       });
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -420,10 +456,14 @@ export const MobileProjectDetail = () => {
                       variant="wine" 
                       size="sm" 
                       className="w-full"
-                      disabled={project?.status === 'finalizado'}
+                      disabled={project?.status === 'finalizado' || isGeneratingReport}
                     >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Gerar Relatório Final
+                      {isGeneratingReport ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileText className="mr-2 h-4 w-4" />
+                      )}
+                      {isGeneratingReport ? "Gerando Relatório..." : "Gerar Relatório Final"}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -435,12 +475,20 @@ export const MobileProjectDetail = () => {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogCancel disabled={isGeneratingReport}>Cancelar</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={handleGenerateReport}
-                        className="bg-wine-red text-white hover:bg-wine-red-hover"
+                        disabled={isGeneratingReport}
+                        className="bg-wine-red text-white hover:bg-wine-red-hover disabled:opacity-50"
                       >
-                        Gerar Relatório
+                        {isGeneratingReport ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Gerando...
+                          </>
+                        ) : (
+                          "Gerar Relatório"
+                        )}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
