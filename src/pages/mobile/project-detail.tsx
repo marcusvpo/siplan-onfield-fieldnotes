@@ -162,6 +162,7 @@ export const MobileProjectDetail = () => {
   }, {});
 
   const handleRecordClick = () => {
+    console.log('handleRecordClick called, current state:', recordingState);
     if (recordingState === 'idle') {
       startRecording();
     } else if (recordingState === 'recording') {
@@ -170,6 +171,7 @@ export const MobileProjectDetail = () => {
   };
 
   const handleCancelRecording = () => {
+    console.log('handleCancelRecording called');
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
       const stream = mediaRecorderRef.current.stream;
@@ -184,6 +186,12 @@ export const MobileProjectDetail = () => {
       title: "Gravação cancelada",
       description: "A gravação foi cancelada."
     });
+  };
+
+  // Função legacy para compatibilidade (não deve ser usada)
+  const handleRecordStart = () => {
+    console.warn('handleRecordStart chamado - função obsoleta');
+    handleRecordClick();
   };
 
   const startRecording = async () => {
