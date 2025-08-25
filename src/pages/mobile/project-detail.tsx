@@ -58,10 +58,8 @@ export const MobileProjectDetail = () => {
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [expandedTranscriptions, setExpandedTranscriptions] = useState<Record<string, boolean>>({});
   const [transcriptionStatuses, setTranscriptionStatuses] = useState<Record<string, 'pending' | 'completed'>>({});
-  const [dragStartPosition, setDragStartPosition] = useState<{ x: number; y: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'ready_to_send'>('idle');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -163,55 +161,29 @@ export const MobileProjectDetail = () => {
     return acc;
   }, {});
 
-  const handleRecordStart = (e: React.MouseEvent | React.TouchEvent) => {
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    setDragStartPosition({ x: clientX, y: clientY });
-    setDragPosition({ x: clientX, y: clientY });
-    startRecording();
-  };
-
-  const handleRecordMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isRecording || !dragStartPosition) return;
-
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
-    const deltaX = clientX - dragStartPosition.x;
-    setDragPosition({ x: clientX, y: clientY });
-    
-    // Se arrastou mais de 100px para a esquerda, cancela
-    if (deltaX < -100) {
-      setIsDragging(true);
-    } else {
-      setIsDragging(false);
+  const handleRecordClick = () => {
+    if (recordingState === 'idle') {
+      startRecording();
+    } else if (recordingState === 'recording') {
+      stopAndSendRecording();
     }
   };
 
-  const handleRecordEnd = () => {
-    if (!isRecording) return;
-
-    if (isDragging) {
-      // Cancela a gravação
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-        const stream = mediaRecorderRef.current.stream;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-        }
+  const handleCancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      const stream = mediaRecorderRef.current.stream;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
       }
-      setIsRecording(false);
-      toast({
-        title: "Gravação cancelada",
-        description: "A gravação foi cancelada."
-      });
-    } else {
-      stopRecording();
     }
-
-    setDragStartPosition(null);
-    setIsDragging(false);
-    setDragPosition({ x: 0, y: 0 });
+    setIsRecording(false);
+    setRecordingState('idle');
+    setRecordingTime(0);
+    toast({
+      title: "Gravação cancelada",
+      description: "A gravação foi cancelada."
+    });
   };
 
   const startRecording = async () => {
@@ -227,17 +199,13 @@ export const MobileProjectDetail = () => {
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        if (!isDragging) {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          setIsAddingComment(true);
-          await addAudioComment(audioBlob); // Chama a função do hook
-          setIsAddingComment(false);
-        }
+        // Função será chamada quando parar a gravação
         stream.getTracks().forEach(track => track.stop()); // Encerra o microfone
       };
 
       mediaRecorderRef.current.onstart = () => {
         setIsRecording(true);
+        setRecordingState('recording');
         setRecordingTime(0);
         // Inicia o cronômetro visual
         const timer = setInterval(() => {
@@ -256,6 +224,23 @@ export const MobileProjectDetail = () => {
         description: error.message || "Verifique as permissões do microfone.",
         variant: "destructive"
       });
+    }
+  };
+
+  const stopAndSendRecording = async () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      
+      // Aguarda um pouco para garantir que os dados foram coletados
+      setTimeout(async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setIsAddingComment(true);
+        await addAudioComment(audioBlob);
+        setIsAddingComment(false);
+        setIsRecording(false);
+        setRecordingState('idle');
+        setRecordingTime(0);
+      }, 100);
     }
   };
 
@@ -647,7 +632,7 @@ export const MobileProjectDetail = () => {
           disabled={isRecording} // Desabilita o textarea durante a gravação
         />
         
-        {/* Botão Dinâmico: Enviar ou Microfone */}
+        {/* Botões de ação */}
         {newText.trim() ? (
           <Button 
             size="icon"
@@ -662,38 +647,40 @@ export const MobileProjectDetail = () => {
             )}
           </Button>
         ) : (
-          <Button
-            ref={recordButtonRef}
-            size="icon"
-            className={`h-10 w-10 rounded-full shrink-0 transition-all duration-200 ${
-              isRecording 
-                ? isDragging 
-                  ? "bg-destructive hover:bg-destructive/90 animate-pulse" 
-                  : "bg-destructive hover:bg-destructive/90 animate-pulse"
-                : "bg-wine-red hover:bg-wine-red-hover"
-            }`}
-            onMouseDown={handleRecordStart}
-            onMouseMove={handleRecordMove}
-            onMouseUp={handleRecordEnd}
-            onMouseLeave={handleRecordEnd}
-            onTouchStart={handleRecordStart}
-            onTouchMove={handleRecordMove}
-            onTouchEnd={handleRecordEnd}
-            aria-label={isRecording ? "Parar gravação" : "Iniciar gravação"}
-            disabled={isAddingComment}
-          >
-            {isRecording ? (
-              isDragging ? <X className="h-5 w-5" /> : <MicOff className="h-5 w-5" />
-            ) : (
-              <Mic className="h-5 w-5" />
+          <div className="flex items-end gap-2">
+            {/* Botão de cancelar (só aparece durante gravação) */}
+            {isRecording && (
+              <Button
+                size="icon"
+                className="h-10 w-10 rounded-full bg-destructive hover:bg-destructive/90 shrink-0"
+                onClick={handleCancelRecording}
+                disabled={isAddingComment}
+              >
+                <X className="h-5 w-5" />
+              </Button>
             )}
-          </Button>
-        )}
-
-        {/* Cancel drag indicator */}
-        {isRecording && isDragging && (
-          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-destructive text-white px-3 py-1 rounded-full text-sm z-50">
-            Solte para cancelar
+            
+            {/* Botão de gravar/enviar áudio */}
+            <Button
+              ref={recordButtonRef}
+              size="icon"
+              className={`h-10 w-10 rounded-full shrink-0 transition-all duration-200 ${
+                isRecording 
+                  ? "bg-wine-red hover:bg-wine-red-hover animate-pulse"
+                  : "bg-wine-red hover:bg-wine-red-hover"
+              }`}
+              onClick={handleRecordClick}
+              aria-label={isRecording ? "Enviar gravação" : "Iniciar gravação"}
+              disabled={isAddingComment}
+            >
+              {isAddingComment ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : isRecording ? (
+                <Send className="h-5 w-5" />
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
+            </Button>
           </div>
         )}
       </div>
