@@ -244,7 +244,6 @@ export const useProjectComments = (projectId?: string) => {
         setAudioUrls(prev => ({ ...prev, [data.id]: signedUrlData.signedUrl }));
       }
 
-      // Realiza um cast mais forte para `any` na data, e depois mapeia para o tipo correto.
       const newComment: ProjectComment = {
         ...data as any, // Cast a data como any antes de remapear
         user: (data as any).user ? {
@@ -258,7 +257,7 @@ export const useProjectComments = (projectId?: string) => {
       
       toast({
         title: "Áudio enviado",
-        description: "Seu áudio foi enviado e a transcrição será processada."
+        description: "Seu áudio foi enviado e a transcrição será processada em breve."
       });
 
       return true;

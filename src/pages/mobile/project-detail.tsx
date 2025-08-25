@@ -88,8 +88,10 @@ export const MobileProjectDetail = () => {
           filter: `projeto_id=eq.${id}`
         },
         (payload) => {
+          console.log('Realtime update received:', payload);
           const updatedComment = payload.new as any;
-          if (updatedComment.type === 'audio' && updatedComment.texto !== 'Transcrição pendente...') {
+          if (updatedComment.type === 'audio' && updatedComment.texto && updatedComment.texto.trim() !== '') {
+            console.log('Transcription completed for comment:', updatedComment.id);
             setTranscriptionStatuses(prev => ({
               ...prev,
               [updatedComment.id]: 'completed'
@@ -109,7 +111,8 @@ export const MobileProjectDetail = () => {
     const statuses: Record<string, 'pending' | 'completed'> = {};
     comments.forEach(comment => {
       if (comment.type === 'audio') {
-        statuses[comment.id] = comment.texto === 'Transcrição pendente...' ? 'pending' : 'completed';
+        // Se o texto está vazio ou só tem espaços, a transcrição está pendente
+        statuses[comment.id] = (!comment.texto || comment.texto.trim() === '') ? 'pending' : 'completed';
       }
     });
     setTranscriptionStatuses(statuses);
@@ -131,7 +134,9 @@ export const MobileProjectDetail = () => {
 
       if (data) {
         data.forEach(comment => {
-          if (comment.texto !== 'Transcrição pendente...') {
+          // Se o texto agora tem conteúdo, marca como completed
+          if (comment.texto && comment.texto.trim() !== '') {
+            console.log('Polling detected completed transcription for:', comment.id);
             setTranscriptionStatuses(prev => ({
               ...prev,
               [comment.id]: 'completed'
@@ -243,7 +248,7 @@ export const MobileProjectDetail = () => {
       setTimeout(async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setIsAddingComment(true);
-        await addAudioComment(audioBlob);
+        const success = await addAudioComment(audioBlob);
         setIsAddingComment(false);
         setIsRecording(false);
         setRecordingState('idle');
