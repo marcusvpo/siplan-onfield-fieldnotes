@@ -222,7 +222,7 @@ export const useProjectComments = (projectId?: string) => {
         usuario_id: authUser.id,
         type: 'audio',
         audio_url: filePath,
-        texto: 'Transcrição pendente...'
+        texto: '' // Campo vazio para áudios - a automação preencherá
       };
 
       const { data, error } = await supabase
@@ -253,14 +253,6 @@ export const useProjectComments = (projectId?: string) => {
         } : null,
         type: data.type as "text" | "audio",
       };
-
-      // Simular transcrição para teste (remover quando tiver transcrição real)
-      setTimeout(async () => {
-        await supabase
-          .from('comentarios_projeto')
-          .update({ texto: `Transcrição simulada do áudio enviado em ${new Date().toLocaleTimeString()}` })
-          .eq('id', data.id);
-      }, 5000);
 
       setComments(prev => [...prev, newComment]);
       
