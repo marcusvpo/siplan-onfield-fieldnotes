@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,7 +23,8 @@ import {
   MoreVertical,
   ChevronUp,
   Loader2,
-  X
+  X,
+  FileText
 } from "lucide-react";
 
 interface ProjectComment {
@@ -292,19 +292,33 @@ export const MobileProjectDetail = () => {
     }));
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleGenerateReport = async () => {
     if (!project) return;
     
     try {
-      await updateProject(project.id, { status: newStatus as any });
+      // Here we would integrate with n8n webhook
+      // For now, we'll show a success message and potentially update project status
       toast({
-        title: "Status atualizado",
-        description: `Status do projeto alterado para ${getStatusLabel(newStatus)}`
+        title: "Gerando relatório",
+        description: "O relatório está sendo gerado pela automação. Você será notificado quando estiver pronto."
       });
+      
+      // TODO: Add n8n webhook integration here
+      // const webhookUrl = 'https://your-n8n-webhook-url';
+      // await fetch(webhookUrl, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     projectId: project.id,
+      //     projectName: project.nome_cartorio,
+      //     comments: comments
+      //   })
+      // });
+      
     } catch (error: any) {
       toast({
-        title: "Erro ao atualizar status",
-        description: error.message || "Não foi possível atualizar o status do projeto.",
+        title: "Erro ao gerar relatório",
+        description: error.message || "Não foi possível gerar o relatório.",
         variant: "destructive"
       });
     }
@@ -398,22 +412,39 @@ export const MobileProjectDetail = () => {
                 </div>
               )}
 
+              {/* Gerar Relatório Button */}
               <div className="mt-3">
-                <label className="text-xs text-medium-gray mb-1 block">Atualizar Status:</label>
-                <Select 
-                  value={project?.status} 
-                  onValueChange={handleStatusChange}
-                  disabled={project?.status === 'finalizado'}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="aguardando">Agendado</SelectItem>
-                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                    <SelectItem value="finalizado">Concluído</SelectItem>
-                  </SelectContent>
-                </Select>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="wine" 
+                      size="sm" 
+                      className="w-full"
+                      disabled={project?.status === 'finalizado'}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Gerar Relatório Final
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar geração de relatório</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja gerar o relatório final deste projeto? 
+                        Certifique-se de que toda a implantação está 100% finalizada antes de prosseguir.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleGenerateReport}
+                        className="bg-wine-red text-white hover:bg-wine-red-hover"
+                      >
+                        Gerar Relatório
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CollapsibleContent>
           </Collapsible>
