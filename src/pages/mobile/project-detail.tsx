@@ -77,8 +77,9 @@ export const MobileProjectDetail = () => {
   useEffect(() => {
     if (!id) return;
 
+    console.log('Setting up realtime subscription for project:', id);
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('comentarios-realtime')
       .on(
         'postgres_changes',
         {
@@ -90,63 +91,86 @@ export const MobileProjectDetail = () => {
         (payload) => {
           console.log('Realtime update received:', payload);
           const updatedComment = payload.new as any;
-          if (updatedComment.type === 'audio' && updatedComment.texto && updatedComment.texto.trim() !== '') {
-            console.log('Transcription completed for comment:', updatedComment.id);
+          
+          // Só considera completa se for áudio E tem texto E o texto tem mais que 10 caracteres
+          // (para evitar textos muito curtos que podem ser placeholders)
+          if (updatedComment.type === 'audio' && 
+              updatedComment.texto && 
+              updatedComment.texto.trim().length > 10) {
+            console.log('Transcription completed for comment:', updatedComment.id, 'Text length:', updatedComment.texto.length);
             setTranscriptionStatuses(prev => ({
               ...prev,
               [updatedComment.id]: 'completed'
             }));
+          } else {
+            console.log('Transcription still pending for comment:', updatedComment.id, 'Text:', updatedComment.texto);
           }
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [id]);
 
   // Initialize transcription statuses when comments load
   useEffect(() => {
+    console.log('Initializing transcription statuses for comments:', comments.length);
     const statuses: Record<string, 'pending' | 'completed'> = {};
     comments.forEach(comment => {
       if (comment.type === 'audio') {
-        // Se o texto está vazio ou só tem espaços, a transcrição está pendente
-        statuses[comment.id] = (!comment.texto || comment.texto.trim() === '') ? 'pending' : 'completed';
+        // Só considera completo se tem texto com pelo menos 10 caracteres
+        const isCompleted = comment.texto && comment.texto.trim().length > 10;
+        statuses[comment.id] = isCompleted ? 'completed' : 'pending';
+        console.log('Comment', comment.id, 'status:', isCompleted ? 'completed' : 'pending', 'text length:', comment.texto?.length || 0);
       }
     });
     setTranscriptionStatuses(statuses);
   }, [comments]);
 
-  // Refresh transcription status every 5 seconds for pending ones
+  // Polling para verificar transcrições pendentes - verifica a cada 3 segundos
   useEffect(() => {
     const pendingTranscriptions = Object.entries(transcriptionStatuses)
       .filter(([_, status]) => status === 'pending')
       .map(([id]) => id);
 
+    console.log('Pending transcriptions:', pendingTranscriptions);
     if (pendingTranscriptions.length === 0) return;
 
     const interval = setInterval(async () => {
-      const { data } = await supabase
+      console.log('Polling for transcription updates...');
+      const { data, error } = await supabase
         .from('comentarios_projeto')
         .select('id, texto')
         .in('id', pendingTranscriptions);
 
+      if (error) {
+        console.error('Error polling transcriptions:', error);
+        return;
+      }
+
       if (data) {
         data.forEach(comment => {
-          // Se o texto agora tem conteúdo, marca como completed
-          if (comment.texto && comment.texto.trim() !== '') {
-            console.log('Polling detected completed transcription for:', comment.id);
+          // Só considera completo se tem texto com pelo menos 10 caracteres
+          if (comment.texto && comment.texto.trim().length > 10) {
+            console.log('Polling detected completed transcription for:', comment.id, 'Text length:', comment.texto.length);
             setTranscriptionStatuses(prev => ({
               ...prev,
               [comment.id]: 'completed'
             }));
+          } else {
+            console.log('Polling: transcription still pending for:', comment.id, 'Text length:', comment.texto?.length || 0);
           }
         });
       }
-    }, 5000);
+    }, 3000); // Verifica a cada 3 segundos
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log('Cleaning up polling interval');
+      clearInterval(interval);
+    };
   }, [transcriptionStatuses]);
 
   // Função para formatar tempo (usado no cronômetro de gravação e duração do áudio)
@@ -604,11 +628,13 @@ export const MobileProjectDetail = () => {
                                         )}
                                       </Button>
                                       
-                                      {expandedTranscriptions[comment.id] && (
-                                        <div className="mt-2 p-2 bg-white/50 rounded border text-sm text-dark-gray">
-                                          {comment.texto || "Transcrição não disponível"}
-                                        </div>
-                                      )}
+                                       {expandedTranscriptions[comment.id] && (
+                                         <div className="mt-2 p-2 bg-white/50 rounded border text-sm text-dark-gray">
+                                           {comment.texto && comment.texto.trim().length > 10 
+                                             ? comment.texto 
+                                             : "Aguardando transcrição..."}
+                                         </div>
+                                       )}
                                     </div>
                                   )}
                                 </div>
