@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectComments } from "@/hooks/use-project-comments";
@@ -18,20 +17,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   Mic, 
   MicOff,
-  Play, 
-  Pause,
   Send,
-  Paperclip,
   Calendar,
   MapPin,
-  FileText,
-  Image as ImageIcon,
-  ArrowLeft,
   ChevronDown,
   MoreVertical,
   ChevronUp,
   Loader2,
-  Camera,
   X
 } from "lucide-react";
 
@@ -39,8 +31,7 @@ interface ProjectComment {
   id: string;
   texto: string;
   audio_url?: string;
-  image_url?: string;
-  type: 'text' | 'audio' | 'image';
+  type: 'text' | 'audio';
   created_at: string;
   user: {
     nome: string;
@@ -64,7 +55,6 @@ export const MobileProjectDetail = () => {
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [expandedTranscriptions, setExpandedTranscriptions] = useState<Record<string, boolean>>({});
   const [transcriptionStatuses, setTranscriptionStatuses] = useState<Record<string, 'pending' | 'completed'>>({});
-  const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
   const [dragStartPosition, setDragStartPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -72,7 +62,6 @@ export const MobileProjectDetail = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordButtonRef = useRef<HTMLButtonElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const project = projects.find(p => p.id === id);
 
@@ -321,89 +310,6 @@ export const MobileProjectDetail = () => {
     }
   };
 
-  const handleFileUpload = async (file: File) => {
-    if (!project) return;
-
-    try {
-      setIsAddingComment(true);
-      
-      // Upload da imagem
-      const filePath = `projetos/${project.id}/anexos/${Date.now()}_${file.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('project_files')
-        .upload(filePath, file, {
-          contentType: file.type,
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Criar comentário de imagem
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) throw new Error("Usuário não autenticado.");
-
-      const { error } = await supabase
-        .from('comentarios_projeto')
-        .insert([{
-          projeto_id: project.id,
-          usuario_id: authUser.id,
-          type: 'image',
-          image_url: filePath,
-          texto: file.name
-        }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Imagem enviada",
-        description: "Sua imagem foi enviada com sucesso."
-      });
-
-      setAttachmentDialogOpen(false);
-    } catch (error: any) {
-      console.error('Erro ao enviar imagem:', error);
-      toast({
-        title: "Erro ao enviar imagem",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsAddingComment(false);
-    }
-  };
-
-  const handleCameraCapture = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.setAttribute('capture', 'environment');
-      fileInputRef.current.setAttribute('accept', 'image/*');
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleGallerySelect = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.removeAttribute('capture');
-      fileInputRef.current.setAttribute('accept', 'image/*');
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileSelect = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.removeAttribute('capture');
-      fileInputRef.current.setAttribute('accept', '*/*');
-      fileInputRef.current.click();
-    }
-  };
-
-  const getImageUrl = async (imagePath: string) => {
-    const { data } = await supabase.storage
-      .from('project_files')
-      .createSignedUrl(imagePath, 60 * 60);
-    return data?.signedUrl;
-  };
-
   const getStatusColor = (status: string) => {
     const colors = {
       "em_andamento": "bg-info text-white",
@@ -630,23 +536,6 @@ export const MobileProjectDetail = () => {
                                   )}
                                 </div>
                               </div>
-                            ) : comment.type === 'image' ? (
-                              <div className="bg-light-gray p-2 rounded-lg max-w-xs">
-                                <img 
-                                  src={comment.image_url} 
-                                  alt={comment.texto}
-                                  className="w-full h-auto rounded cursor-pointer"
-                                  onClick={() => window.open(comment.image_url, '_blank')}
-                                  onLoad={async (e) => {
-                                    if (comment.image_url && !comment.image_url.startsWith('http')) {
-                                      const signedUrl = await getImageUrl(comment.image_url);
-                                      if (signedUrl) {
-                                        (e.target as HTMLImageElement).src = signedUrl;
-                                      }
-                                    }
-                                  }}
-                                />
-                              </div>
                             ) : (
                               <div className="bg-light-gray p-3 rounded-lg">
                                 <p className="text-sm text-dark-gray">{comment.texto}</p>
@@ -669,46 +558,6 @@ export const MobileProjectDetail = () => {
 
       {/* Fixed Bottom Actions - Layout WhatsApp-like */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-3 flex items-end gap-2">
-        {/* Botão Anexar */}
-        <Dialog open={attachmentDialogOpen} onOpenChange={setAttachmentDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0">
-              <Paperclip className="h-5 w-5 text-medium-gray" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Enviar anexo</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-3 gap-4 py-4">
-              <Button 
-                variant="outline" 
-                className="flex flex-col gap-2 h-20"
-                onClick={handleCameraCapture}
-              >
-                <Camera className="h-6 w-6" />
-                <span className="text-xs">Câmera</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex flex-col gap-2 h-20"
-                onClick={handleGallerySelect}
-              >
-                <ImageIcon className="h-6 w-6" />
-                <span className="text-xs">Galeria</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex flex-col gap-2 h-20"
-                onClick={handleFileSelect}
-              >
-                <FileText className="h-6 w-6" />
-                <span className="text-xs">Arquivo</span>
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        
         {/* Campo de texto (Textarea) */}
         <Textarea
           placeholder={isRecording ? `Gravando... ${formatTime(recordingTime)}` : "Adicionar observação..."}
@@ -769,19 +618,6 @@ export const MobileProjectDetail = () => {
           </div>
         )}
       </div>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            handleFileUpload(file);
-          }
-        }}
-      />
     </div>
   );
 };

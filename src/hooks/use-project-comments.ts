@@ -19,9 +19,8 @@ export interface ProjectComment {
   texto: string;
   created_at: string;
   updated_at: string;
-  type: "text" | "audio" | "image";
+  type: "text" | "audio";
   audio_url: string | null;
-  image_url: string | null;
   user: { // user pode ser null se o usuario_id for null ou o join não encontrar
     nome: string;
     tipo: UserRow['tipo']; // Usa o tipo corrigido de 'tipo'
@@ -61,7 +60,7 @@ export const useProjectComments = (projectId?: string) => {
           nome: comment.user.nome,
           tipo: comment.user.tipo,
         } : null,
-        type: comment.type as "text" | "audio" | "image",
+        type: comment.type as "text" | "audio",
       }));
 
       setComments(fetchedComments);
@@ -132,7 +131,7 @@ export const useProjectComments = (projectId?: string) => {
           nome: (data as any).user.nome,
           tipo: (data as any).user.tipo,
         } : null,
-        type: data.type as "text" | "audio" | "image",
+        type: data.type as "text" | "audio",
       };
 
       setComments(prev => [...prev, newComment]);
@@ -252,7 +251,7 @@ export const useProjectComments = (projectId?: string) => {
           nome: (data as any).user.nome,
           tipo: (data as any).user.tipo,
         } : null,
-        type: data.type as "text" | "audio" | "image",
+        type: data.type as "text" | "audio",
       };
 
       // Simular transcrição para teste (remover quando tiver transcrição real)
@@ -282,71 +281,6 @@ export const useProjectComments = (projectId?: string) => {
     }
   };
 
-  const addImageComment = async (file: File): Promise<boolean> => {
-    if (!projectId) return false;
-
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) throw new Error("Usuário não autenticado.");
-
-      const filePath = `projetos/${projectId}/anexos/${Date.now()}_${file.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('project_files')
-        .upload(filePath, file, {
-          contentType: file.type,
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const insertData: ComentarioInsert = {
-        projeto_id: projectId,
-        usuario_id: authUser.id,
-        type: 'image',
-        image_url: filePath,
-        texto: file.name
-      };
-
-      const { data, error } = await supabase
-        .from('comentarios_projeto')
-        .insert([insertData])
-        .select(`
-          *,
-          user:users!fk_comentarios_usuario_auth_id(nome, tipo)
-        `)
-        .single();
-
-      if (error) throw error;
-
-      // Realiza um cast mais forte para `any` na data, e depois mapeia para o tipo correto.
-      const newComment: ProjectComment = {
-        ...data as any, // Cast a data como any antes de remapear
-        user: (data as any).user ? {
-          nome: (data as any).user.nome,
-          tipo: (data as any).user.tipo,
-        } : null,
-        type: data.type as "text" | "audio" | "image",
-      };
-
-      setComments(prev => [...prev, newComment]);
-      
-      toast({
-        title: "Imagem enviada",
-        description: "Sua imagem foi enviada com sucesso."
-      });
-
-      return true;
-    } catch (error: any) {
-      console.error('Erro ao enviar imagem:', error);
-      toast({
-        title: "Erro ao enviar imagem",
-        description: error.message,
-        variant: "destructive"
-      });
-      return false;
-    }
-  };
 
   useEffect(() => {
     loadComments();
@@ -358,7 +292,7 @@ export const useProjectComments = (projectId?: string) => {
     loadComments,
     addComment,
     addAudioComment,
-    addImageComment,
+    
     deleteComment,
     audioUrls
   };
