@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { supabase } from "@/integrations/supabase/client";
 
 // Configuração do webhook n8n para geração de relatório
-const N8N_WEBHOOK_URL = "https://77350e4f45d1.ngrok-free.app/webhook-test/gerar-relatorio";
+const N8N_WEBHOOK_URL = "https://582eb5359885.ngrok-free.app/webhook-test/gerar-relatorio";
 import { 
   Mic, 
   MicOff,
