@@ -141,6 +141,22 @@ export const useProjects = () => {
       setProjects(prev => [newProject, ...prev]);
       await loadProjects(); // Reload to get updated stats
       
+      // Create project folder in reports storage
+      if (projectData.usuario_id) {
+        try {
+          await supabase.functions.invoke('manage-report-folders', {
+            body: { 
+              action: 'create_project_folder', 
+              user_id: projectData.usuario_id, 
+              project_id: data.id 
+            }
+          })
+          console.log('[PROJECTS] Report folder created for project:', data.id)
+        } catch (folderError) {
+          console.warn('[PROJECTS] Warning: Could not create project report folder:', folderError)
+        }
+      }
+      
       toast({
         title: "Projeto criado com sucesso",
         description: `Projeto ${projectData.chamado} foi criado.`
@@ -208,6 +224,24 @@ export const useProjects = () => {
       );
       await loadProjects(); // Reload to get updated stats
 
+      // Handle project reassignment
+      const oldProject = projects.find(p => p.id === id);
+      if (oldProject && updates.usuario_id && oldProject.usuario_id !== updates.usuario_id) {
+        try {
+          await supabase.functions.invoke('manage-report-folders', {
+            body: { 
+              action: 'move_project', 
+              old_user_id: oldProject.usuario_id, 
+              user_id: updates.usuario_id, 
+              project_id: id 
+            }
+          })
+          console.log('[PROJECTS] Project folder moved for reassignment:', id)
+        } catch (folderError) {
+          console.warn('[PROJECTS] Warning: Could not move project report folder:', folderError)
+        }
+      }
+
       toast({
         title: "Projeto atualizado",
         description: "As alterações foram salvas com sucesso."
@@ -227,6 +261,9 @@ export const useProjects = () => {
 
   const deleteProject = async (id: string) => {
     try {
+      // Get project info for cleanup
+      const projectToDelete = projects.find(p => p.id === id);
+      
       // 1. Get all comments with audio files for this project
       const { data: commentsData, error: commentsError } = await supabase
         .from('comentarios_projeto')
@@ -258,10 +295,26 @@ export const useProjects = () => {
 
       if (deleteCommentsError) throw deleteCommentsError;
 
-      // 4. Delete all other related data (add more tables as needed)
+      // 4. Clean up project reports folder
+      if (projectToDelete?.usuario_id) {
+        try {
+          await supabase.functions.invoke('manage-report-folders', {
+            body: { 
+              action: 'cleanup_project', 
+              user_id: projectToDelete.usuario_id, 
+              project_id: id 
+            }
+          })
+          console.log('[PROJECTS] Project report folder cleaned:', id)
+        } catch (folderError) {
+          console.warn('[PROJECTS] Warning: Could not clean project report folder:', folderError)
+        }
+      }
+
+      // 5. Delete all other related data (add more tables as needed)
       // TODO: Add deletion for other related tables like anexos, blocos, etc.
 
-      // 5. Finally, delete the project
+      // 6. Finally, delete the project
       const { error } = await supabase
         .from('projetos')
         .delete()

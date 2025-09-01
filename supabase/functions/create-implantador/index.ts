@@ -86,6 +86,21 @@ serve(async (req) => {
 
     console.log('[CREATE IMPLANTADOR] User created successfully:', userData)
 
+    // Create user folder in reports storage
+    try {
+      const { error: folderError } = await supabase.functions.invoke('manage-report-folders', {
+        body: { action: 'create_user_folder', user_id: userId }
+      })
+      
+      if (folderError) {
+        console.warn('[CREATE IMPLANTADOR] Warning: Could not create report folder:', folderError)
+      } else {
+        console.log('[CREATE IMPLANTADOR] Report folder created for user:', userId)
+      }
+    } catch (folderError) {
+      console.warn('[CREATE IMPLANTADOR] Warning: Could not create report folder:', folderError)
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 

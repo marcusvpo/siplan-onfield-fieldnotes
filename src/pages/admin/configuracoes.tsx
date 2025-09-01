@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Settings, Plus, Edit, Trash2, Database } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Database, FolderPlus } from "lucide-react";
 import { useSistemas } from "@/hooks/use-sistemas";
 import { useStatusProjeto } from "@/hooks/use-status-projeto";
+import { useReportFolders } from "@/hooks/use-report-folders";
 import { SistemaFormDialog } from "@/components/admin/sistema-form-dialog";
 import { StatusFormDialog } from "@/components/admin/status-form-dialog";
 
@@ -18,6 +19,7 @@ export default function AdminConfiguracoesPage() {
 
   const { sistemas, loading: sistemasLoading, createSistema, updateSistema, deleteSistema } = useSistemas();
   const { statusList, loading: statusLoading, createStatus, updateStatus, deleteStatus } = useStatusProjeto();
+  const { runBackfill, loading: backfillLoading } = useReportFolders();
 
   const handleCreateSistema = async (data: any) => {
     return await createSistema(data);
@@ -43,6 +45,10 @@ export default function AdminConfiguracoesPage() {
     await deleteStatus(id);
   };
 
+  const handleBackfillReports = async () => {
+    await runBackfill();
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -54,6 +60,35 @@ export default function AdminConfiguracoesPage() {
             </p>
           </div>
         </div>
+
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderPlus className="h-5 w-5" />
+                Relatórios
+              </CardTitle>
+              <CardDescription>
+                Gerencie a estrutura de pastas de relatórios no storage.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Execute o backfill para criar automaticamente todas as pastas de relatórios 
+                  para usuários e projetos existentes que ainda não possuem suas pastas.
+                </p>
+                <Button 
+                  onClick={handleBackfillReports}
+                  disabled={backfillLoading}
+                  className="flex items-center gap-2"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                  {backfillLoading ? 'Criando pastas...' : 'Criar Pastas de Relatórios'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
@@ -211,6 +246,7 @@ export default function AdminConfiguracoesPage() {
             </CardContent>
           </Card>
 
+        </div>
         </div>
 
         {/* Dialogs */}

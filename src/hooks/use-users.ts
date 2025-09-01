@@ -133,7 +133,21 @@ export const useUsers = () => {
   };
 
   const toggleUserStatus = async (id: string, currentStatus: boolean) => {
-    return updateUser(id, { ativo: !currentStatus });
+    const result = await updateUser(id, { ativo: !currentStatus });
+    
+    // If user is being activated and is an implantador, create their report folder
+    if (result.data && !currentStatus && result.data.tipo === 'implantador' && result.data.auth_id) {
+      try {
+        await supabase.functions.invoke('manage-report-folders', {
+          body: { action: 'create_user_folder', user_id: result.data.auth_id }
+        });
+        console.log('[USERS] Report folder created for activated user:', result.data.auth_id);
+      } catch (folderError) {
+        console.warn('[USERS] Warning: Could not create report folder for user:', folderError);
+      }
+    }
+    
+    return result;
   };
 
   const deleteUser = async (id: string) => {
