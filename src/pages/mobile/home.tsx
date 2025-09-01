@@ -10,7 +10,8 @@ import {
   Calendar, 
   MapPin, 
   Clock,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from "lucide-react";
 
 export const MobileHome = () => {
@@ -44,6 +45,10 @@ export const MobileHome = () => {
     navigate(`/mobile/project/${projectId}`);
   };
 
+  const handleOpenReports = () => {
+    navigate('/mobile/reports');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -71,6 +76,18 @@ export const MobileHome = () => {
           <p className="text-medium-gray">
             Você tem <span className="font-semibold text-wine-red">{userProjects.length} projetos</span> atribuídos
           </p>
+        </div>
+
+        {/* Botão Meus Relatórios */}
+        <div className="mb-6">
+          <Button 
+            className="w-full bg-wine-red hover:bg-wine-red-hover gap-2"
+            size="lg"
+            onClick={handleOpenReports}
+          >
+            <FileText className="h-5 w-5" />
+            Meus Relatórios
+          </Button>
         </div>
 
         <div className="space-y-4">

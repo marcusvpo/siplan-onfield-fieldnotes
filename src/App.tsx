@@ -12,6 +12,7 @@ import AdminProjectsPage from "./pages/admin/projetos";
 import AdminConfiguracoesPage from "./pages/admin/configuracoes";
 import { MobileHome } from "./pages/mobile/home";
 import { MobileProjectDetail } from "./pages/mobile/project-detail";
+import { MobileReports } from "./pages/mobile/reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -94,6 +95,11 @@ const App = () => (
           <Route path="/mobile/project/:id" element={
             <ProtectedRoute requiredType="implantador">
               <MobileProjectDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/mobile/reports" element={
+            <ProtectedRoute requiredType="implantador">
+              <MobileReports />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />
