@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './use-auth';
 import { useToast } from './use-toast';
+import { useProjects } from './use-projects';
 
 // Usar o tipo FileObject do Supabase
 type Report = {
@@ -11,16 +12,20 @@ type Report = {
   created_at: string | null;
   last_accessed_at: string | null;
   metadata: any;
+  projectId: string;
+  projectName: string;
+  fullPath: string;
 };
 
 export const useReports = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { projects } = useProjects();
   const { toast } = useToast();
 
   const loadReports = async () => {
-    if (!user?.id) {
+    if (!user?.id || !projects.length) {
       setLoading(false);
       return;
     }
@@ -28,32 +33,42 @@ export const useReports = () => {
     try {
       console.log('[REPORTS] Carregando relatórios para usuário:', user.id);
       
-      // Lista arquivos no bucket "relatorios" no path do usuário
-      const { data: files, error } = await supabase.storage
-        .from('relatorios')
-        .list(`${user.id}`, {
-          limit: 100,
-          offset: 0
-        });
+      const allReports: Report[] = [];
 
-      if (error) {
-        console.error('[REPORTS] Erro ao carregar relatórios:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar seus relatórios",
-          variant: "destructive"
-        });
-        return;
+      // Para cada projeto do usuário, busca relatórios
+      for (const project of projects) {
+        try {
+          const { data: files, error } = await supabase.storage
+            .from('relatorios')
+            .list(`${user.id}/${project.id}`, {
+              limit: 100,
+              offset: 0
+            });
+
+          if (error) {
+            console.warn(`[REPORTS] Erro ao listar relatórios do projeto ${project.id}:`, error);
+            continue;
+          }
+
+          // Filtra apenas arquivos HTML e adiciona informações do projeto
+          const htmlFiles = files?.filter(file => 
+            file.name.toLowerCase().endsWith('.html') && 
+            file.name !== '.emptyFolderPlaceholder'
+          ).map(file => ({
+            ...file,
+            projectId: project.id,
+            projectName: project.nome_cartorio,
+            fullPath: `${user.id}/${project.id}/${file.name}`
+          })) || [];
+
+          allReports.push(...htmlFiles);
+        } catch (projectError) {
+          console.warn(`[REPORTS] Erro ao processar projeto ${project.id}:`, projectError);
+        }
       }
 
-      // Filtra apenas arquivos HTML
-      const htmlFiles = files?.filter(file => 
-        file.name.toLowerCase().endsWith('.html') && 
-        file.name !== '.emptyFolderPlaceholder'
-      ) || [];
-
-      console.log('[REPORTS] Relatórios encontrados:', htmlFiles.length);
-      setReports(htmlFiles);
+      console.log('[REPORTS] Total de relatórios encontrados:', allReports.length);
+      setReports(allReports);
 
     } catch (error) {
       console.error('[REPORTS] Erro inesperado:', error);
@@ -67,15 +82,15 @@ export const useReports = () => {
     }
   };
 
-  const downloadReport = async (fileName: string) => {
+  const downloadReport = async (report: Report) => {
     if (!user?.id) return;
 
     try {
-      console.log('[REPORTS] Baixando relatório:', fileName);
+      console.log('[REPORTS] Baixando relatório:', report.fullPath);
       
       const { data, error } = await supabase.storage
         .from('relatorios')
-        .download(`${user.id}/${fileName}`);
+        .download(report.fullPath);
 
       if (error) {
         console.error('[REPORTS] Erro ao baixar relatório:', error);
@@ -91,7 +106,7 @@ export const useReports = () => {
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = report.name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -113,13 +128,13 @@ export const useReports = () => {
     }
   };
 
-  const getReportUrl = async (fileName: string) => {
+  const getReportUrl = async (report: Report) => {
     if (!user?.id) return null;
 
     try {
       const { data } = supabase.storage
         .from('relatorios')
-        .getPublicUrl(`${user.id}/${fileName}`);
+        .getPublicUrl(report.fullPath);
 
       return data.publicUrl;
     } catch (error) {
@@ -148,8 +163,10 @@ export const useReports = () => {
   };
 
   useEffect(() => {
-    loadReports();
-  }, [user?.id]);
+    if (user?.id && projects.length > 0) {
+      loadReports();
+    }
+  }, [user?.id, projects.length]);
 
   return {
     reports,

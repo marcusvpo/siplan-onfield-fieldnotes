@@ -29,8 +29,8 @@ export const MobileReports = () => {
     navigate('/mobile');
   };
 
-  const handleDownload = (fileName: string) => {
-    downloadReport(fileName);
+  const handleDownload = (report: any) => {
+    downloadReport(report);
   };
 
   const handleRefresh = () => {
@@ -99,6 +99,9 @@ export const MobileReports = () => {
                       <CardTitle className="text-lg font-semibold text-dark-gray">
                         {report.name.replace('.html', '')}
                       </CardTitle>
+                      <p className="text-sm text-medium-gray mb-1">
+                        {report.projectName}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="secondary" className="text-xs">
                           HTML
@@ -118,7 +121,7 @@ export const MobileReports = () => {
                 <Button 
                   className="w-full bg-wine-red hover:bg-wine-red-hover gap-2"
                   size="lg"
-                  onClick={() => handleDownload(report.name)}
+                  onClick={() => handleDownload(report)}
                 >
                   <Download className="h-4 w-4" />
                   Baixar Relatório
