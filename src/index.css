@@ -68,10 +68,21 @@ All colors MUST be HSL.
     --shadow-floating: 0 12px 40px -8px hsl(215 20% 15% / 0.15);
     --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
 
-    /* Animações e Transições */
+    /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-fast: all 0.15s ease-out;
-    --transition-bounce: all 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    /* Admin Theme */
+    --admin-bg: 220 13% 9%;
+    --admin-bg-secondary: 220 13% 12%;
+    --admin-card: 220 13% 15%;
+    --admin-border: 220 13% 20%;
+    --admin-text: 220 9% 90%;
+    --admin-text-muted: 220 9% 65%;
+    --admin-gradient: linear-gradient(135deg, hsl(220, 13%, 9%) 0%, hsl(220, 13%, 12%) 100%);
+    --admin-gradient-card: linear-gradient(145deg, hsl(220, 13%, 15%) 0%, hsl(220, 13%, 12%) 100%);
 
     /* Bordas Arredondadas */
     --radius-sm: 8px;
@@ -177,6 +188,18 @@ All colors MUST be HSL.
     box-shadow: var(--shadow-glow);
   }
 
+  .shadow-deep {
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.25);
+  }
+
+  .shadow-admin {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .shadow-admin-card {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+
   /* Gradientes */
   .bg-gradient-primary {
     background: var(--gradient-primary);
@@ -204,6 +227,44 @@ All colors MUST be HSL.
     transition: var(--transition-bounce);
   }
 
+  .transition-spring {
+    transition: var(--transition-spring);
+  }
+
+  /* Admin Theme Classes */
+  .admin-bg {
+    background: hsl(var(--admin-bg));
+  }
+
+  .admin-bg-secondary {
+    background: hsl(var(--admin-bg-secondary));
+  }
+
+  .admin-card {
+    background: hsl(var(--admin-card));
+    border: 1px solid hsl(var(--admin-border));
+  }
+
+  .admin-gradient {
+    background: var(--admin-gradient);
+  }
+
+  .admin-gradient-card {
+    background: var(--admin-gradient-card);
+  }
+
+  .admin-text {
+    color: hsl(var(--admin-text));
+  }
+
+  .admin-text-muted {
+    color: hsl(var(--admin-text-muted));
+  }
+
+  .border-admin-border {
+    border-color: hsl(var(--admin-border));
+  }
+
   /* Efeitos hover elegantes */
   .hover-lift {
     @apply transition-smooth;
@@ -211,6 +272,18 @@ All colors MUST be HSL.
   
   .hover-lift:hover {
     @apply -translate-y-1 shadow-floating;
+  }
+
+  .hover-scale {
+    @apply hover:scale-105 transition-transform duration-200;
+  }
+
+  .hover-glow {
+    @apply hover:shadow-glow transition-shadow duration-300;
+  }
+
+  .hover-admin {
+    @apply hover:shadow-admin-card hover:translate-y-[-1px] transition-all duration-200;
   }
 
   /* Botão de gravação pulsante */
@@ -258,5 +331,38 @@ All colors MUST be HSL.
       opacity: 1;
       transform: scale(1);
     }
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s ease-out;
+  }
+
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 }

@@ -154,79 +154,83 @@ export const AdminDashboard = () => {
       <div className="space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="admin-gradient-card shadow-admin-card hover-admin border-admin-border animate-fade-in-up">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
-              <FolderOpen className="h-4 w-4 text-wine-red" />
+              <CardTitle className="text-sm font-medium admin-text">Projetos Ativos</CardTitle>
+              <FolderOpen className="h-4 w-4 text-wine-red animate-float" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">{stats.ativos}</div>
-              <p className="text-xs text-medium-gray">Em andamento</p>
+              <div className="text-2xl font-bold admin-text">{stats.ativos}</div>
+              <p className="text-xs admin-text-muted">Em andamento</p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="admin-gradient-card shadow-admin-card hover-admin border-admin-border animate-fade-in-up" style={{animationDelay: '0.1s'}}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Finalizados</CardTitle>
-              <CheckCircle className="h-4 w-4 text-success" />
+              <CardTitle className="text-sm font-medium admin-text">Finalizados</CardTitle>
+              <CheckCircle className="h-4 w-4 text-success animate-float" style={{animationDelay: '0.5s'}} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">{stats.concluidos}</div>
-              <p className="text-xs text-medium-gray">Concluídos</p>
+              <div className="text-2xl font-bold admin-text">{stats.concluidos}</div>
+              <p className="text-xs admin-text-muted">Concluídos</p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="admin-gradient-card shadow-admin-card hover-admin border-admin-border animate-fade-in-up" style={{animationDelay: '0.2s'}}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Atrasados</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-warning" />
+              <CardTitle className="text-sm font-medium admin-text">Atrasados</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-warning animate-float" style={{animationDelay: '1s'}} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">{stats.atrasados}</div>
-              <p className="text-xs text-medium-gray">Precisam atenção</p>
+              <div className="text-2xl font-bold admin-text">{stats.atrasados}</div>
+              <p className="text-xs admin-text-muted">Precisam atenção</p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="admin-gradient-card shadow-admin-card hover-admin border-admin-border animate-fade-in-up" style={{animationDelay: '0.3s'}}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Implantadores</CardTitle>
-              <Users className="h-4 w-4 text-info" />
+              <CardTitle className="text-sm font-medium admin-text">Implantadores</CardTitle>
+              <Users className="h-4 w-4 text-info animate-float" style={{animationDelay: '1.5s'}} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-dark-gray">{userStats.ativos}</div>
-              <p className="text-xs text-medium-gray">Ativos no sistema</p>
+              <div className="text-2xl font-bold admin-text">{userStats.ativos}</div>
+              <p className="text-xs admin-text-muted">Ativos no sistema</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Últimas Atividades */}
-        <Card>
+        <Card className="admin-gradient-card shadow-admin-card border-admin-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 admin-text">
               <Clock className="h-5 w-5" />
               Últimas Atividades
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="admin-text-muted">
               Acompanhe as modificações recentes no sistema
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             {atividadesLoading ? (
-              <div className="text-center py-4">Carregando atividades...</div>
+              <div className="text-center py-4 admin-text-muted">Carregando atividades...</div>
             ) : atividades.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">Nenhuma atividade recente</div>
+              <div className="text-center py-4 admin-text-muted">Nenhuma atividade recente</div>
             ) : (
-              <div className="space-y-3">
-                {atividades.map((atividade) => (
-                  <div key={atividade.id} className="flex items-start gap-3 p-3 rounded-lg border">
-                    <div className="w-2 h-2 rounded-full bg-primary mt-2"></div>
+              <div className="h-64 overflow-y-auto space-y-3 pr-2">
+                {atividades.map((atividade, index) => (
+                  <div 
+                    key={atividade.id} 
+                    className="flex items-start gap-3 p-3 rounded-lg border border-admin-border admin-bg-secondary hover-admin animate-slide-in-left shadow-admin-card"
+                    style={{animationDelay: `${index * 0.1}s`}}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-wine-red mt-2 animate-float" style={{animationDelay: `${index * 0.2}s`}}></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium admin-text">
                           {atividade.user?.nome || "Usuário"} {atividade.acao.toLowerCase()}
                         </p>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs admin-text-muted">
                           {new Date(atividade.created_at).toLocaleDateString('pt-BR')} às{' '}
                           {new Date(atividade.created_at).toLocaleTimeString('pt-BR', { 
                             hour: '2-digit', 
@@ -235,7 +239,7 @@ export const AdminDashboard = () => {
                         </span>
                       </div>
                       {atividade.descricao && (
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-sm admin-text-muted mt-1">
                           {atividade.descricao}
                         </p>
                       )}
@@ -248,20 +252,20 @@ export const AdminDashboard = () => {
         </Card>
 
         {/* Kanban de Projetos */}
-        <Card>
+        <Card className="admin-gradient-card shadow-deep border-admin-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 admin-text">
               <FolderOpen className="h-5 w-5" />
               Visão Kanban dos Projetos
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="admin-text-muted">
               Visualize os projetos organizados por status
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             {projectsLoading ? (
-              <div className="text-center py-8">Carregando projetos...</div>
+              <div className="text-center py-8 admin-text-muted">Carregando projetos...</div>
             ) : (
               <KanbanBoard 
                 projects={projects} 

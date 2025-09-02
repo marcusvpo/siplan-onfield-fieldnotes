@@ -50,16 +50,16 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarHeader className="border-b border-border">
+    <Sidebar className={`${collapsed ? "w-14" : "w-64"} admin-gradient-card border-admin-border shadow-admin`} collapsible="icon">
+      <SidebarHeader className="border-b border-admin-border">
         <div className="flex items-center gap-2 px-4 py-3">
-          <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">S</span>
+          <div className="h-8 w-8 rounded bg-wine-red flex items-center justify-center shadow-admin-card animate-float">
+            <span className="text-white font-bold text-sm">S</span>
           </div>
           {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm">Siplan</span>
-              <span className="text-xs text-muted-foreground">On-Field</span>
+            <div className="flex flex-col animate-fade-in-up">
+              <span className="font-semibold text-sm admin-text">Siplan</span>
+              <span className="text-xs admin-text-muted">On-Field</span>
             </div>
           )}
         </div>
@@ -67,22 +67,23 @@ export function AdminSidebar() {
 
       <SidebarContent className="flex-1">
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="admin-text-muted">Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {menuItems.map((item, index) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
                       to={item.url} 
                       end={item.url === "/admin"}
                       className={({ isActive: navIsActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                        `flex items-center gap-3 px-3 py-2 rounded-md transition-spring hover-admin animate-fade-in-up ${
                           navIsActive || isActive(item.url)
-                            ? "bg-primary text-primary-foreground" 
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-wine-red text-white shadow-admin-card" 
+                            : "admin-text-muted hover:bg-admin-bg-secondary"
                         }`
                       }
+                      style={{animationDelay: `${index * 0.1}s`}}
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
                       {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
@@ -95,13 +96,13 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="border-t border-border">
+      <SidebarFooter className="border-t border-admin-border">
         <div className="p-2">
           <Button
             variant="ghost"
             size={collapsed ? "icon" : "default"}
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors ${
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm admin-text-muted hover:bg-admin-bg-secondary hover:admin-text transition-spring shadow-admin-card ${
               collapsed ? 'justify-center' : ''
             }`}
           >
