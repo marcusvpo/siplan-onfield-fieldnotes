@@ -643,18 +643,67 @@ export const MobileProjectDetail = () => {
                       </div>
                     </div>
 
-                    <div className="text-sm text-dark-gray whitespace-pre-wrap">
-                      {comment.user?.nome === "Sistema" ? (
-                        <div dangerouslySetInnerHTML={{
-                          __html: comment.texto
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-wine-red hover:text-wine-red-dark underline">$1</a>')
-                            .replace(/\n/g, '<br/>')
-                        }} />
-                      ) : (
-                        comment.texto
-                      )}
-                    </div>
+                    {comment.type === 'text' ? (
+                      <div className="text-sm text-dark-gray whitespace-pre-wrap">
+                        {comment.user?.nome === "Sistema" ? (
+                          <div dangerouslySetInnerHTML={{
+                            __html: comment.texto
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-wine-red hover:text-wine-red-dark underline">$1</a>')
+                              .replace(/\n/g, '<br/>')
+                          }} />
+                        ) : (
+                          comment.texto
+                        )}
+                      </div>
+                    ) : (
+                      // Comentário de áudio
+                      <div className="space-y-3">
+                        {/* Player de áudio */}
+                        {audioUrls[comment.id] && (
+                          <div className="bg-wine-red-light p-3 rounded-lg">
+                            <audio
+                              controls
+                              src={audioUrls[comment.id]}
+                              className="w-full h-8"
+                              style={{ filter: 'sepia(1) saturate(2) hue-rotate(315deg)' }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Status e transcrição */}
+                        <div className="space-y-2">
+                          {transcriptionStatuses[comment.id] === 'completed' ? (
+                            <div>
+                              <button
+                                onClick={() => toggleTranscription(comment.id)}
+                                className="flex items-center gap-2 text-sm font-medium text-wine-red hover:text-wine-red-dark transition-colors"
+                              >
+                                <FileText className="h-4 w-4" />
+                                Transcrição
+                                {expandedTranscriptions[comment.id] ? 
+                                  <ChevronUp className="h-4 w-4" /> : 
+                                  <ChevronDown className="h-4 w-4" />
+                                }
+                              </button>
+                              
+                              {expandedTranscriptions[comment.id] && (
+                                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                                  <p className="text-sm text-dark-gray whitespace-pre-wrap">
+                                    {comment.texto}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm text-medium-gray">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Processando transcrição...</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                           </div>
                         </CardContent>
