@@ -715,59 +715,6 @@ export const MobileProjectDetail = () => {
           </div>
         </div>
       )}
-        
-        {/* Botões de ação */}
-        {newText.trim() ? (
-          <Button 
-            size="icon"
-            className="h-10 w-10 rounded-full bg-wine-red hover:bg-wine-red-hover shrink-0"
-            disabled={isAddingComment}
-            onClick={handleSendTextComment}
-          >
-            {isAddingComment ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
-        ) : (
-          <div className="flex items-end gap-2">
-            {/* Botão de cancelar (só aparece durante gravação) */}
-            {isRecording && (
-              <Button
-                size="icon"
-                className="h-10 w-10 rounded-full bg-destructive hover:bg-destructive/90 shrink-0"
-                onClick={handleCancelRecording}
-                disabled={isAddingComment}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            )}
-            
-            {/* Botão de gravar/enviar áudio */}
-            <Button
-              ref={recordButtonRef}
-              size="icon"
-              className={`h-10 w-10 rounded-full shrink-0 transition-all duration-200 ${
-                isRecording 
-                  ? "bg-wine-red hover:bg-wine-red-hover animate-pulse"
-                  : "bg-wine-red hover:bg-wine-red-hover"
-              }`}
-              onClick={handleRecordClick}
-              aria-label={isRecording ? "Enviar gravação" : "Iniciar gravação"}
-              disabled={isAddingComment}
-            >
-              {isAddingComment ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : isRecording ? (
-                <Send className="h-5 w-5" />
-              ) : (
-                <Mic className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
