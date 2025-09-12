@@ -16,7 +16,7 @@ export const Login = () => {
   const [mode, setMode] = useState<LoginMode>("user");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("admin@siplan.com.br");
-  const [password, setPassword] = useState("siplan123");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -72,13 +72,8 @@ export const Login = () => {
 
   const resetForm = () => {
     setUsername("");
-    if (mode === "admin") {
-      setEmail("admin@siplan.com.br");
-      setPassword("siplan123");
-    } else {
-      setEmail("");
-      setPassword("");
-    }
+    setEmail(mode === "admin" ? "admin@siplan.com.br" : "");
+    setPassword("");
   };
 
   const switchMode = (newMode: LoginMode) => {
