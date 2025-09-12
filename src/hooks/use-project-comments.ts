@@ -153,47 +153,6 @@ export const useProjectComments = (projectId?: string) => {
     }
   };
 
-  const addSystemComment = async (texto: string, fileUrl?: string): Promise<boolean> => {
-    if (!projectId || !texto.trim()) return false;
-
-    try {
-      const insertData: ComentarioInsert = {
-        projeto_id: projectId,
-        usuario_id: null, // Sistema não tem usuário
-        texto: texto.trim(),
-        type: fileUrl ? 'audio' : 'text', // Use 'audio' type for file attachments
-        audio_url: fileUrl || null
-      };
-
-      const { data, error } = await supabase
-        .from('comentarios_projeto')
-        .insert([insertData])
-        .select(`
-          *,
-          user:users!fk_comentarios_usuario_auth_id(nome, tipo)
-        `)
-        .single();
-
-      if (error) throw error;
-
-      const newComment: ProjectComment = {
-        ...data as any,
-        user: {
-          nome: "Sistema",
-          tipo: "sistema" as any,
-        },
-        type: data.type as "text" | "audio",
-      };
-
-      setComments(prev => [...prev, newComment]);
-      
-      return true;
-    } catch (error: any) {
-      console.error('Erro ao adicionar comentário do sistema:', error);
-      return false;
-    }
-  };
-
   const deleteComment = async (commentId: string): Promise<boolean> => {
     try {
       // Get the comment to check for audio file
@@ -323,8 +282,8 @@ export const useProjectComments = (projectId?: string) => {
     loading,
     loadComments,
     addComment,
-    addSystemComment,
     addAudioComment,
+    
     deleteComment,
     audioUrls
   };

@@ -47,7 +47,7 @@ export const MobileProjectDetail = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { projects, updateProject } = useProjects();
-  const { comments, loading: commentsLoading, addComment, addSystemComment, addAudioComment, deleteComment, audioUrls } = useProjectComments(id);
+  const { comments, loading: commentsLoading, addComment, addAudioComment, deleteComment, audioUrls } = useProjectComments(id);
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -319,7 +319,7 @@ export const MobileProjectDetail = () => {
   };
 
   const handleGenerateReport = async () => {
-    if (!project || !user) return;
+    if (!project) return;
     
     setIsGeneratingReport(true);
     
@@ -336,35 +336,22 @@ export const MobileProjectDetail = () => {
       });
 
       if (response.ok) {
-        // Gerar URL do arquivo no storage seguindo o padrão
-        const reportUrl = `relatorios/${user.id}/${project.id}/${project.chamado}.html`;
+        const result = await response.json();
         
-        // Criar URL assinada para o arquivo
-        const { data: signedUrlData } = await supabase.storage
-          .from('relatorios')
-          .createSignedUrl(reportUrl, 60 * 60 * 24 * 7); // Válida por 7 dias
-        
-        if (signedUrlData?.signedUrl) {
-          // Adicionar comentário do sistema com o arquivo
-          const systemMessage = `📋 **Relatório Final Gerado**\n\nO relatório de implantação foi finalizado e está disponível para download.\n\n[📥 **Baixar Relatório**](${signedUrlData.signedUrl})`;
-          
-          await addSystemComment(systemMessage, reportUrl);
-          
-          // Marcar projeto como concluído
-          await updateProject(project.id, { status: 'finalizado' });
-          
+        // Se o webhook retornou uma URL do PDF
+        if (result.pdf_url) {
           toast({
             title: "Relatório gerado com sucesso!",
-            description: "O projeto foi marcado como concluído e o relatório está disponível para download."
+            description: "O relatório foi criado e será aberto em uma nova aba."
           });
-        } else {
-          // Fallback caso não consiga gerar URL assinada
-          await addSystemComment("📋 **Relatório Final Gerado**\n\nO relatório de implantação foi finalizado com sucesso.");
-          await updateProject(project.id, { status: 'finalizado' });
           
+          // Abrir o PDF automaticamente em uma nova aba
+          window.open(result.pdf_url, '_blank');
+        } else {
+          // Sucesso genérico se não houver URL
           toast({
-            title: "Relatório processado",
-            description: "O projeto foi marcado como concluído."
+            title: "Relatório em processamento",
+            description: "O relatório está sendo gerado. Você será notificado quando estiver pronto."
           });
         }
       } else {
@@ -605,106 +592,58 @@ export const MobileProjectDetail = () => {
                               </div>
                             </div>
                             
-                  <div className="p-3 bg-white border border-border">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-wine-red">
-                          {comment.user?.nome || "Sistema"}
-                        </span>
-                        <span className="text-xs text-medium-gray">
-                          {comment.user?.nome === "Sistema" ? '(Sistema)' : 
-                           comment.user?.tipo === 'admin' ? '(Admin)' : '(Implantador)'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-medium-gray">
-                          {new Date(comment.created_at).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
-                        {comment.user && user && comment.user.nome !== "Sistema" && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <MoreVertical className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteComment(comment.id)}
-                                className="text-destructive"
-                              >
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </div>
-
-                    {comment.type === 'text' ? (
-                      <div className="text-sm text-dark-gray whitespace-pre-wrap">
-                        {comment.user?.nome === "Sistema" ? (
-                          <div dangerouslySetInnerHTML={{
-                            __html: comment.texto
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-wine-red hover:text-wine-red-dark underline">$1</a>')
-                              .replace(/\n/g, '<br/>')
-                          }} />
-                        ) : (
-                          comment.texto
-                        )}
-                      </div>
-                    ) : (
-                      // Comentário de áudio
-                      <div className="space-y-3">
-                        {/* Player de áudio */}
-                        {audioUrls[comment.id] && (
-                          <div className="bg-wine-red-light p-3 rounded-lg">
-                            <audio
-                              controls
-                              src={audioUrls[comment.id]}
-                              className="w-full h-8"
-                              style={{ filter: 'sepia(1) saturate(2) hue-rotate(315deg)' }}
-                            />
-                          </div>
-                        )}
-
-                        {/* Status e transcrição */}
-                        <div className="space-y-2">
-                          {transcriptionStatuses[comment.id] === 'completed' ? (
-                            <div>
-                              <button
-                                onClick={() => toggleTranscription(comment.id)}
-                                className="flex items-center gap-2 text-sm font-medium text-wine-red hover:text-wine-red-dark transition-colors"
-                              >
-                                <FileText className="h-4 w-4" />
-                                Transcrição
-                                {expandedTranscriptions[comment.id] ? 
-                                  <ChevronUp className="h-4 w-4" /> : 
-                                  <ChevronDown className="h-4 w-4" />
-                                }
-                              </button>
-                              
-                              {expandedTranscriptions[comment.id] && (
-                                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                                  <p className="text-sm text-dark-gray whitespace-pre-wrap">
-                                    {comment.texto}
-                                  </p>
+                            {comment.type === 'audio' ? (
+                              <div className="bg-wine-red-light p-3 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <audio controls src={audioUrls[comment.id]} className="w-full">
+                                    Seu navegador não suporta o elemento de áudio.
+                                  </audio>
                                 </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 text-sm text-medium-gray">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Processando transcrição...</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+
+                                {/* Transcription Status */}
+                                <div className="mt-2">
+                                  {transcriptionStatuses[comment.id] === 'pending' ? (
+                                    <div className="flex items-center gap-2 text-sm text-medium-gray">
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      <span>Transcrevendo áudio...</span>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => toggleTranscription(comment.id)}
+                                        className="text-xs p-1 h-auto text-wine-red hover:text-wine-red-hover"
+                                      >
+                                        {expandedTranscriptions[comment.id] ? (
+                                          <>
+                                            <ChevronUp className="mr-1 h-3 w-3" />
+                                            Ocultar transcrição
+                                          </>
+                                        ) : (
+                                          <>
+                                            <ChevronDown className="mr-1 h-3 w-3" />
+                                            Ver transcrição
+                                          </>
+                                        )}
+                                      </Button>
+                                      
+                                       {expandedTranscriptions[comment.id] && (
+                                         <div className="mt-2 p-2 bg-white/50 rounded border text-sm text-dark-gray">
+                                           {comment.texto && comment.texto.trim().length > 10 
+                                             ? comment.texto 
+                                             : "Aguardando transcrição..."}
+                                         </div>
+                                       )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-light-gray p-3 rounded-lg">
+                                <p className="text-sm text-dark-gray">{comment.texto}</p>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -720,50 +659,70 @@ export const MobileProjectDetail = () => {
         </div>
       </main>
 
-      {/* Fixed Bottom Actions - Only show if project is not finished */}
-      {project?.status !== 'finalizado' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-3 flex items-end gap-2">
-          <Textarea
-            placeholder={isRecording ? `Gravando... ${formatTime(recordingTime)}` : "Adicionar observação..."}
-            value={newText}
-            onChange={(e) => setNewText(e.target.value)}
-            className="flex-1 resize-none min-h-[40px] max-h-32 text-base rounded-full py-2 px-4 shadow-inner"
-            rows={1}
-            disabled={isRecording}
-          />
-          
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={handleSendTextComment}
-              disabled={!newText.trim() || isAddingComment}
-              className="bg-wine-red hover:bg-wine-red-dark text-white"
-            >
-              {isAddingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+      {/* Fixed Bottom Actions - Layout WhatsApp-like */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-3 flex items-end gap-2">
+        {/* Campo de texto (Textarea) */}
+        <Textarea
+          placeholder={isRecording ? `Gravando... ${formatTime(recordingTime)}` : "Adicionar observação..."}
+          value={newText}
+          onChange={(e) => setNewText(e.target.value)}
+          className="flex-1 resize-none min-h-[40px] max-h-32 text-base rounded-full py-2 px-4 shadow-inner"
+          rows={1}
+          disabled={isRecording} // Desabilita o textarea durante a gravação
+        />
+        
+        {/* Botões de ação */}
+        {newText.trim() ? (
+          <Button 
+            size="icon"
+            className="h-10 w-10 rounded-full bg-wine-red hover:bg-wine-red-hover shrink-0"
+            disabled={isAddingComment}
+            onClick={handleSendTextComment}
+          >
+            {isAddingComment ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </Button>
+        ) : (
+          <div className="flex items-end gap-2">
+            {/* Botão de cancelar (só aparece durante gravação) */}
+            {isRecording && (
+              <Button
+                size="icon"
+                className="h-10 w-10 rounded-full bg-destructive hover:bg-destructive/90 shrink-0"
+                onClick={handleCancelRecording}
+                disabled={isAddingComment}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            )}
             
+            {/* Botão de gravar/enviar áudio */}
             <Button
-              variant="outline"
-              size="sm"
+              ref={recordButtonRef}
+              size="icon"
+              className={`h-10 w-10 rounded-full shrink-0 transition-all duration-200 ${
+                isRecording 
+                  ? "bg-wine-red hover:bg-wine-red-hover animate-pulse"
+                  : "bg-wine-red hover:bg-wine-red-hover"
+              }`}
               onClick={handleRecordClick}
+              aria-label={isRecording ? "Enviar gravação" : "Iniciar gravação"}
               disabled={isAddingComment}
-              className="border-wine-red text-wine-red hover:bg-wine-red hover:text-white"
             >
-              <Mic className="h-4 w-4" />
+              {isAddingComment ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : isRecording ? (
+                <Send className="h-5 w-5" />
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
             </Button>
           </div>
-        </div>
-      )}
-
-      {/* Show completion message if project is finished */}
-      {project?.status === 'finalizado' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-success/10 border-t border-success p-4">
-          <div className="text-center">
-            <p className="text-sm font-medium text-success">✅ Projeto Concluído</p>
-            <p className="text-xs text-success/80">Este projeto foi finalizado e não aceita mais comentários.</p>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
