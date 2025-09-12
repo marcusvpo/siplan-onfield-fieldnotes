@@ -34,7 +34,7 @@ interface ProjectComment {
   id: string;
   texto: string;
   audio_url?: string;
-  type: 'text' | 'audio';
+  type: 'text' | 'audio' | 'report';
   created_at: string;
   user: {
     nome: string;
@@ -47,7 +47,7 @@ export const MobileProjectDetail = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { projects, updateProject } = useProjects();
-  const { comments, loading: commentsLoading, addComment, addAudioComment, deleteComment, audioUrls } = useProjectComments(id);
+  const { comments, loading: commentsLoading, addComment, addAudioComment, addReportComment, deleteComment, audioUrls } = useProjectComments(id);
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -338,11 +338,18 @@ export const MobileProjectDetail = () => {
       if (response.ok) {
         const result = await response.json();
         
+        // Construir o caminho do relatório baseado na estrutura informada
+        const reportPath = `${project.usuario_id}/${project.id}/${project.chamado}.html`;
+        const reportFileName = `${project.chamado}.html`;
+        
+        // Adicionar comentário do sistema com o relatório
+        await addReportComment(reportPath, reportFileName);
+        
         // Se o webhook retornou uma URL do PDF
         if (result.pdf_url) {
           toast({
             title: "Relatório gerado com sucesso!",
-            description: "O relatório foi criado e será aberto em uma nova aba."
+            description: "O relatório foi criado e está disponível nos comentários para download."
           });
           
           // Abrir o PDF automaticamente em uma nova aba
@@ -350,8 +357,8 @@ export const MobileProjectDetail = () => {
         } else {
           // Sucesso genérico se não houver URL
           toast({
-            title: "Relatório em processamento",
-            description: "O relatório está sendo gerado. Você será notificado quando estiver pronto."
+            title: "Relatório processado",
+            description: "O relatório foi gerado e está disponível nos comentários para download."
           });
         }
       } else {
@@ -637,6 +644,28 @@ export const MobileProjectDetail = () => {
                                        )}
                                     </div>
                                   )}
+                                </div>
+                              </div>
+                            ) : comment.type === 'report' ? (
+                              <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <FileText className="h-5 w-5 text-green-600" />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-green-800">{comment.texto}</p>
+                                    <p className="text-xs text-green-600 mt-1">Sistema</p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={() => {
+                                      // Construir URL completa do Supabase para o bucket relatorios
+                                      const reportUrl = `https://ugqpdsnmmzorctbsnbyn.supabase.co/storage/v1/object/public/relatorios/${comment.audio_url}`;
+                                      window.open(reportUrl, '_blank');
+                                    }}
+                                  >
+                                    <FileText className="h-4 w-4 mr-1" />
+                                    Baixar
+                                  </Button>
                                 </div>
                               </div>
                             ) : (

@@ -212,6 +212,51 @@ export type Database = {
           },
         ]
       }
+      chamados: {
+        Row: {
+          Caminho: string | null
+          Chamado: string | null
+          "Cliente - Cliente - Nome Fantasia": string | null
+          "Data de abertura": string | null
+          Descricao: string | null
+          id: number
+          Modulo: string | null
+          Natureza: string | null
+          Prioridade: string | null
+          Severidade: string | null
+          Status: string | null
+          Titulo: string | null
+        }
+        Insert: {
+          Caminho?: string | null
+          Chamado?: string | null
+          "Cliente - Cliente - Nome Fantasia"?: string | null
+          "Data de abertura"?: string | null
+          Descricao?: string | null
+          id?: number
+          Modulo?: string | null
+          Natureza?: string | null
+          Prioridade?: string | null
+          Severidade?: string | null
+          Status?: string | null
+          Titulo?: string | null
+        }
+        Update: {
+          Caminho?: string | null
+          Chamado?: string | null
+          "Cliente - Cliente - Nome Fantasia"?: string | null
+          "Data de abertura"?: string | null
+          Descricao?: string | null
+          id?: number
+          Modulo?: string | null
+          Natureza?: string | null
+          Prioridade?: string | null
+          Severidade?: string | null
+          Status?: string | null
+          Titulo?: string | null
+        }
+        Relationships: []
+      }
       comentarios_projeto: {
         Row: {
           audio_url: string | null

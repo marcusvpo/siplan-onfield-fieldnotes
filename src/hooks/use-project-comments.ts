@@ -19,7 +19,7 @@ export interface ProjectComment {
   texto: string;
   created_at: string;
   updated_at: string;
-  type: "text" | "audio";
+  type: "text" | "audio" | "report";
   audio_url: string | null;
   user: { // user pode ser null se o usuario_id for null ou o join não encontrar
     nome: string;
@@ -60,7 +60,7 @@ export const useProjectComments = (projectId?: string) => {
           nome: comment.user.nome,
           tipo: comment.user.tipo,
         } : null,
-        type: comment.type as "text" | "audio",
+        type: comment.type as "text" | "audio" | "report",
       }));
 
       setComments(fetchedComments);
@@ -131,7 +131,7 @@ export const useProjectComments = (projectId?: string) => {
           nome: (data as any).user.nome,
           tipo: (data as any).user.tipo,
         } : null,
-        type: data.type as "text" | "audio",
+        type: data.type as "text" | "audio" | "report",
       };
 
       setComments(prev => [...prev, newComment]);
@@ -166,6 +166,17 @@ export const useProjectComments = (projectId?: string) => {
         
         if (storageError) {
           console.warn('Erro ao excluir arquivo de áudio:', storageError);
+        }
+      }
+
+      // Delete report file from storage if it exists  
+      if (commentToDelete?.type === 'report' && commentToDelete.audio_url) {
+        const { error: storageError } = await supabase.storage
+          .from('relatorios')
+          .remove([commentToDelete.audio_url]);
+        
+        if (storageError) {
+          console.warn('Erro ao excluir arquivo de relatório:', storageError);
         }
       }
 
@@ -250,7 +261,7 @@ export const useProjectComments = (projectId?: string) => {
           nome: (data as any).user.nome,
           tipo: (data as any).user.tipo,
         } : null,
-        type: data.type as "text" | "audio",
+        type: data.type as "text" | "audio" | "report",
       };
 
       setComments(prev => [...prev, newComment]);
@@ -272,6 +283,54 @@ export const useProjectComments = (projectId?: string) => {
     }
   };
 
+  const addReportComment = async (reportPath: string, reportFileName: string): Promise<boolean> => {
+    if (!projectId) return false;
+
+    try {
+      // Criar comentário do sistema
+      const insertData: ComentarioInsert = {
+        projeto_id: projectId,
+        usuario_id: null, // Sistema
+        texto: `Relatório gerado: ${reportFileName}`,
+        type: 'report',
+        audio_url: reportPath // Usar o campo audio_url para armazenar o caminho do relatório
+      };
+
+      const { data, error } = await supabase
+        .from('comentarios_projeto')
+        .insert([insertData])
+        .select(`
+          *,
+          user:users!fk_comentarios_usuario_auth_id(nome, tipo)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      const newComment: ProjectComment = {
+        ...data as any,
+        user: null, // Sistema não tem usuário
+        type: data.type as "text" | "audio" | "report",
+      };
+
+      setComments(prev => [...prev, newComment]);
+      
+      toast({
+        title: "Relatório disponível",
+        description: "O relatório foi gerado com sucesso e está disponível para download."
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao adicionar comentário de relatório:', error);
+      toast({
+        title: "Erro ao registrar relatório",
+        description: error.message,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
 
   useEffect(() => {
     loadComments();
@@ -283,7 +342,7 @@ export const useProjectComments = (projectId?: string) => {
     loadComments,
     addComment,
     addAudioComment,
-    
+    addReportComment,
     deleteComment,
     audioUrls
   };
